@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="discordclient" default="all">
+  
+  
+  <property file="discord.properties"/>
+  <!-- Uncomment the following property if no tests compilation is needed -->
+  <!-- 
+  <property name="skip.tests" value="true"/>
+   -->
+  
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="700m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/.git/**"/>
+  </patternset>
+  <patternset id="library.patterns">
+    <include name="*.jar"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <exclude name="**/?*.java"/>
+    <exclude name="**/?*.class"/>
+  </patternset>
+  
+  <!-- JDK definitions -->
+  
+  <property name="jdk.bin.1.8" value="${jdk.home.1.8}/bin"/>
+  <path id="jdk.classpath.1.8">
+    <fileset dir="${jdk.home.1.8}">
+      <include name="../default-java/jre/lib/charsets.jar"/>
+      <include name="../default-java/jre/lib/ext/cldrdata.jar"/>
+      <include name="../default-java/jre/lib/ext/dnsns.jar"/>
+      <include name="../default-java/jre/lib/ext/icedtea-sound.jar"/>
+      <include name="../default-java/jre/lib/ext/jaccess.jar"/>
+      <include name="../default-java/jre/lib/ext/java-atk-wrapper.jar"/>
+      <include name="../default-java/jre/lib/ext/jfxrt.jar"/>
+      <include name="../default-java/jre/lib/ext/localedata.jar"/>
+      <include name="../default-java/jre/lib/ext/nashorn.jar"/>
+      <include name="../default-java/jre/lib/ext/sunec.jar"/>
+      <include name="../default-java/jre/lib/ext/sunjce_provider.jar"/>
+      <include name="../default-java/jre/lib/ext/sunpkcs11.jar"/>
+      <include name="../default-java/jre/lib/ext/zipfs.jar"/>
+      <include name="../default-java/jre/lib/jce.jar"/>
+      <include name="../default-java/jre/lib/jfxswt.jar"/>
+      <include name="../default-java/jre/lib/jsse.jar"/>
+      <include name="../default-java/jre/lib/management-agent.jar"/>
+      <include name="../default-java/jre/lib/resources.jar"/>
+      <include name="../default-java/jre/lib/rt.jar"/>
+      <include name="../../../share/activemq/lib/hawtbuf.jar"/>
+      <include name="../../../share/activemq/lib/activemq-kahadb-store.jar"/>
+      <include name="../../../share/activemq/lib/activemq-mqtt.jar"/>
+      <include name="../../../share/activemq/lib/activemq-client.jar"/>
+      <include name="../../../share/activemq/lib/slf4j-api.jar"/>
+      <include name="../../../share/activemq/lib/activemq-console.jar"/>
+      <include name="../../../share/activemq/lib/activemq-broker.jar"/>
+      <include name="../../../share/activemq/lib/activemq-protobuf.jar"/>
+      <include name="../../../share/activemq/lib/activemq-ra.jar"/>
+      <include name="../../../share/activemq/lib/jackson-databind.jar"/>
+      <include name="../../../share/activemq/lib/jackson-annotations.jar"/>
+      <include name="../../../share/activemq/lib/activemq-jaas.jar"/>
+      <include name="../../../share/activemq/lib/jcl-over-slf4j.jar"/>
+      <include name="../../../share/activemq/lib/activemq-openwire-legacy.jar"/>
+      <include name="../../../share/activemq/lib/jackson-core.jar"/>
+      <include name="../../../share/activemq/lib/glassfish-javaee.jar"/>
+      <include name="../../../share/activemq/lib/activemq-stomp.jar"/>
+    </fileset>
+  </path>
+  
+  <property name="project.jdk.home" value="${jdk.home.1.8}"/>
+  <property name="project.jdk.bin" value="${jdk.bin.1.8}"/>
+  <property name="project.jdk.classpath" value="jdk.classpath.1.8"/>
+  <!-- Register Custom Compiler Taskdefs -->
+  <property name="javac2.home" value="${idea.home}/lib"/>
+  <path id="javac2.classpath">
+    <pathelement location="${javac2.home}/javac2.jar"/>
+    <pathelement location="${javac2.home}/jdom.jar"/>
+    <pathelement location="${javac2.home}/asm-all.jar"/>
+    <pathelement location="${javac2.home}/jgoodies-forms.jar"/>
+  </path>
+  <target name="register.custom.compilers">
+    <taskdef name="javac2" classname="com.intellij.ant.Javac2" classpathref="javac2.classpath"/>
+    <taskdef name="instrumentIdeaExtensions" classname="com.intellij.ant.InstrumentIdeaExtensions" classpathref="javac2.classpath"/>
+  </target>
+  
+  <!-- Modules -->
+  
+  
+  <!-- Module DiscordClient -->
+  
+  <dirname property="module.discordclient.basedir" file="${ant.file}"/>
+  
+  
+  <property name="module.jdk.home.discordclient" value="${project.jdk.home}"/>
+  <property name="module.jdk.bin.discordclient" value="${project.jdk.bin}"/>
+  <property name="module.jdk.classpath.discordclient" value="${project.jdk.classpath}"/>
+  
+  <property name="compiler.args.discordclient" value="-encoding UTF-8 -source 8 -target 8 ${compiler.args}"/>
+  
+  <property name="discordclient.output.dir" value="${module.discordclient.basedir}/build/production/DiscordClient"/>
+  <property name="discordclient.testoutput.dir" value="${module.discordclient.basedir}/build/test/DiscordClient"/>
+  
+  <path id="discordclient.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="discordclient.module.production.classpath">
+    <path refid="${module.jdk.classpath.discordclient}"/>
+  </path>
+  
+  <path id="discordclient.runtime.production.module.classpath">
+    <pathelement location="${discordclient.output.dir}"/>
+  </path>
+  
+  <path id="discordclient.module.classpath">
+    <path refid="${module.jdk.classpath.discordclient}"/>
+    <pathelement location="${discordclient.output.dir}"/>
+  </path>
+  
+  <path id="discordclient.runtime.module.classpath">
+    <pathelement location="${discordclient.testoutput.dir}"/>
+    <pathelement location="${discordclient.output.dir}"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.discordclient">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.discordclient">
+    <patternset refid="excluded.from.module.discordclient"/>
+  </patternset>
+  
+  <path id="discordclient.module.sourcepath">
+    <dirset dir="${module.discordclient.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+  
+  
+  <target name="compile.module.discordclient" depends="compile.module.discordclient.production,compile.module.discordclient.tests" description="Compile module DiscordClient"/>
+  
+  <target name="compile.module.discordclient.production" depends="register.custom.compilers" description="Compile module DiscordClient; production classes">
+    <mkdir dir="${discordclient.output.dir}"/>
+    <javac2 destdir="${discordclient.output.dir}" debug="${compiler.debug}" nowarn="${compiler.generate.no.warnings}" memorymaximumsize="${compiler.max.memory}" fork="true" executable="${module.jdk.bin.discordclient}/javac">
+      <compilerarg line="${compiler.args.discordclient}"/>
+      <bootclasspath refid="discordclient.module.bootclasspath"/>
+      <classpath refid="discordclient.module.production.classpath"/>
+      <src refid="discordclient.module.sourcepath"/>
+      <patternset refid="excluded.from.compilation.discordclient"/>
+    </javac2>
+    
+    <copy todir="${discordclient.output.dir}/cz/salmelu/discord">
+      <fileset dir="${module.discordclient.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+  
+  <target name="compile.module.discordclient.tests" depends="register.custom.compilers,compile.module.discordclient.production" description="compile module DiscordClient; test classes" unless="skip.tests"/>
+  
+  <target name="clean.module.discordclient" description="cleanup module">
+    <delete dir="${discordclient.output.dir}"/>
+    <delete dir="${discordclient.testoutput.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+  
+  <target name="clean" depends="clean.module.discordclient" description="cleanup all"/>
+  
+  <target name="build.modules" depends="init, clean, compile.module.discordclient" description="build all modules"/>
+  
+  <target name="all" depends="build.modules" description="build all"/>
+</project>
