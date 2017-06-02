@@ -27,6 +27,9 @@ public class DiscordClient {
         dispatcher.ignoreBotMessages(true);
         client.login(dispatcher);
 
+        context.setDispatcher(dispatcher);
+        context.startNotifyManager();
+
         manager.addModule(CopyMessage.class);
         manager.addModule(DelayCopyMessage.class);
 

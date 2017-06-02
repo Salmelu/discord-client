@@ -25,7 +25,7 @@ public class DelayCopyMessage implements MessageListener {
 
     @Override
     public void onMessage(Message message) {
-        String last = storage.getValue("last");
+        String last = storage.getValue("last") + " " + message.getAuthor().getMention();
         storage.setValue("last", message.getRawText());
 
         context.getNotifyManager().addNotification(last, o -> {

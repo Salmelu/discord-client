@@ -1,11 +1,13 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.Channel;
 import cz.salmelu.discord.resources.PermissionOverwriteType;
+import cz.salmelu.discord.resources.Role;
 import cz.salmelu.discord.resources.Server;
 
 import java.util.Arrays;
@@ -33,6 +35,11 @@ public class ChannelImpl implements Channel {
         calculatePermissions();
     }
 
+    // called when server becomes unavailable... prevents doing any actions with it
+    public void resetPermissions() {
+        currentPermissions = 0;
+    }
+
     /**
      * Precalculates current permissions for the channel given the discord rules.
      *
@@ -49,7 +56,7 @@ public class ChannelImpl implements Channel {
         final long[] permissions = {server.getPermissions(), 0, 0, 0, 0, 0, 0};
         final RoleImpl everyoneRole = server.getEveryoneRole();
         final MemberImpl me = server.getMe();
-        final List<String> roleIds = me.getRoles().stream().map(RoleImpl::getId).collect(Collectors.toList());
+        final List<String> roleIds = me.getRoles().stream().map(Role::getId).collect(Collectors.toList());
 
         Arrays.stream(originalObject.getPermissionOverwrites()).forEach(overwriteObject -> {
             if(overwriteObject.getType().equals(PermissionOverwriteType.ROLE)) {
@@ -110,6 +117,9 @@ public class ChannelImpl implements Channel {
 
     @Override
     public void sendMessage(String text) {
+        if(!canSendMessage()) {
+            throw new PermissionDeniedException("This application doesn't have the permission to send messages to this channel.");
+        }
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
         client.getRequester().postRequest(Endpoint.CHANNEL + "/" + id + "/messages", messageObject);

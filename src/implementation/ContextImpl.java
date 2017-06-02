@@ -11,6 +11,13 @@ public class ContextImpl implements Context {
     public ContextImpl() {
         storageManager = new StorageManagerImpl();
         notifyManager = new NotifyManagerImpl();
+    }
+
+    public void setDispatcher(Dispatcher dispatcher) {
+        notifyManager.setDispatcher(dispatcher);
+    }
+
+    public void startNotifyManager() {
         notifyManager.start();
     }
 

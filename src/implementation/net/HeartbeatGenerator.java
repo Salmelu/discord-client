@@ -1,6 +1,6 @@
 package cz.salmelu.discord.implementation.net;
 
-import cz.salmelu.discord.implementation.json.socket.HeartbeatRequest;
+import cz.salmelu.discord.implementation.json.request.HeartbeatRequest;
 
 public class HeartbeatGenerator {
 

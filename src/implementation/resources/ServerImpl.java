@@ -1,14 +1,11 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.implementation.json.resources.ChannelObject;
-import cz.salmelu.discord.implementation.json.resources.RoleObject;
-import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
 import cz.salmelu.discord.resources.Channel;
+import cz.salmelu.discord.resources.Role;
 import cz.salmelu.discord.resources.Server;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ServerImpl implements Server {
 
@@ -19,9 +16,12 @@ public class ServerImpl implements Server {
     private final List<Channel> channelList = new ArrayList<>();
     private final Map<String, Channel> channelsByName = new HashMap<>();
     private final Map<String, Channel> channelsById = new HashMap<>();
-    private final Map<String, RoleImpl> roles = new HashMap<>();
+    private final List<Role> roleList = new ArrayList<>();
+    private final Map<String, Role> rolesById = new HashMap<>();
+    private final Map<String, Role> rolesByName = new HashMap<>();
     private final Map<String, MemberImpl> members = new HashMap<>();
 
+    private boolean disabled = false;
     private RoleImpl everyoneRole;
     private MemberImpl me;
 
@@ -32,7 +32,9 @@ public class ServerImpl implements Server {
 
         Arrays.stream(serverObject.getRoles()).forEach((role) -> {
             final RoleImpl roleRef = new RoleImpl(this, role);
-            roles.put(roleRef.getId(), roleRef);
+            roleList.add(roleRef);
+            rolesById.put(roleRef.getId(), roleRef);
+            rolesByName.put(roleRef.getName(), roleRef);
             if(roleRef.getName().equals("@everyone")) everyoneRole = roleRef;
         });
 
@@ -62,18 +64,15 @@ public class ServerImpl implements Server {
         return me;
     }
 
-    public RoleImpl getEveryoneRole() {
-        return everyoneRole;
-    }
-
-    public RoleImpl getRole(String roleId) {
-        return roles.get(roleId);
-    }
-
     public long getPermissions() {
+        if(disabled) return 0;
         // adds everyone permission + user role's permissions together
-        return getMe().getRoles().stream().map(RoleImpl::getPermissions)
+        return getMe().getRoles().stream().map(role -> ((RoleImpl) (role)).getPermissions())
                 .reduce(everyoneRole.getPermissions(), (p1, p2) -> p1 | p2);
+    }
+
+    public void disable() {
+        disabled = true;
     }
 
     public ClientImpl getClient() {
@@ -92,7 +91,7 @@ public class ServerImpl implements Server {
 
     @Override
     public List<Channel> getChannels() {
-        return channelList;
+        return Collections.unmodifiableList(channelList);
     }
 
     @Override
@@ -103,5 +102,25 @@ public class ServerImpl implements Server {
     @Override
     public Channel getChannelByName(String name) {
         return channelsByName.get(name);
+    }
+
+    @Override
+    public RoleImpl getEveryoneRole() {
+        return everyoneRole;
+    }
+
+    @Override
+    public List<Role> getRoles() {
+        return Collections.unmodifiableList(roleList);
+    }
+
+    @Override
+    public Role getRoleById(String id) {
+        return rolesById.get(id);
+    }
+
+    @Override
+    public Role getRoleByName(String name) {
+        return rolesByName.get(name);
     }
 }

@@ -3,6 +3,7 @@ package cz.salmelu.discord.implementation;
 import cz.salmelu.discord.Context;
 import cz.salmelu.discord.listeners.Initializer;
 import cz.salmelu.discord.listeners.MessageListener;
+import cz.salmelu.discord.listeners.ServerListener;
 import cz.salmelu.discord.listeners.UserActionListener;
 
 import java.lang.reflect.Constructor;
@@ -16,6 +17,7 @@ public class ModuleManager {
     private final List<Initializer> initializers = new ArrayList<>();
     private final List<MessageListener> messageListeners = new ArrayList<>();
     private final List<UserActionListener> actionListeners = new ArrayList<>();
+    private final List<ServerListener> serverListeners = new ArrayList<>();
     private final Context context;
 
     public ModuleManager(Context context) {
@@ -52,6 +54,9 @@ public class ModuleManager {
         if (UserActionListener.class.isAssignableFrom(moduleClass)) {
             actionListeners.add((UserActionListener) module);
         }
+        if (ServerListener.class.isAssignableFrom(moduleClass)) {
+            serverListeners.add((ServerListener) module);
+        }
         messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
     }
 
@@ -69,5 +74,9 @@ public class ModuleManager {
 
     public List<UserActionListener> getUserActionListeners() {
         return actionListeners;
+    }
+
+    public List<ServerListener> getServerListeners() {
+        return serverListeners;
     }
 }

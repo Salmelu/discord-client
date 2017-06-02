@@ -1,6 +1,8 @@
 package cz.salmelu.discord.resources;
 
-public interface User {
+public interface Role {
+
     String getId();
+    String getName();
     String getMention();
 }

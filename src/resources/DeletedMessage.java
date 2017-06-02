@@ -1,6 +1,6 @@
 package cz.salmelu.discord.resources;
 
-public interface User {
+public interface DeletedMessage {
     String getId();
-    String getMention();
+    Channel getChannel();
 }

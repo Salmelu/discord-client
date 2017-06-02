@@ -1,4 +1,4 @@
-package cz.salmelu.discord.implementation.json.socket;
+package cz.salmelu.discord.implementation.json.request;
 
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
 

@@ -73,6 +73,18 @@ public class ClientImpl implements Client {
         serversById.put(server.getId(), server);
     }
 
+    public synchronized void clearServer(ServerImpl server) {
+        serverList.remove(server);
+        serversByName.remove(server.getName());
+        serversById.remove(server.getId());
+
+        server.getChannels().forEach(channel -> {
+            channelList.remove(channel);
+            channelsById.remove(channel.getId());
+            channelsByName.remove(channel.getName());
+        });
+    }
+
     public void setMyUser(UserImpl user) {
         this.myUser = user;
         addUser(user);

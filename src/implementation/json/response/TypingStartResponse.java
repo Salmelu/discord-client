@@ -1,8 +1,8 @@
-package cz.salmelu.discord.implementation.json.resources;
+package cz.salmelu.discord.implementation.json.response;
 
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
 
-public class TypingStartObject extends JSONMappedObject {
+public class TypingStartResponse extends JSONMappedObject {
 
     private String channelId;
     private String userId;

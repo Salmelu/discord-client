@@ -2,8 +2,12 @@ package cz.salmelu.discord.implementation.net;
 
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
 import cz.salmelu.discord.implementation.json.resources.*;
-import cz.salmelu.discord.implementation.json.socket.*;
 import cz.salmelu.discord.implementation.Dispatcher;
+import cz.salmelu.discord.implementation.json.request.*;
+import cz.salmelu.discord.implementation.json.response.MessageDeleteBulkResponse;
+import cz.salmelu.discord.implementation.json.response.MessageDeleteResponse;
+import cz.salmelu.discord.implementation.json.response.PresenceUpdateResponse;
+import cz.salmelu.discord.implementation.json.response.TypingStartResponse;
 import org.eclipse.jetty.websocket.*;
 import org.json.JSONObject;
 import org.slf4j.Logger;
@@ -285,7 +289,7 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
         connect();
     }
 
-    private void dispatch(JSONObject data, String type) {
+    private synchronized void dispatch(JSONObject data, String type) {
         if(state == DiscordWebSocketState.DISCONNECTING) return;
         switch(type) {
             case "READY":
@@ -300,6 +304,10 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
                 logger.debug(marker, "Guild create event received.");
                 dispatcher.onServerCreate(ServerObject.deserialize(data, ServerObject.class));
                 break;
+            case "GUILD_DELETE":
+                logger.debug(marker, "Guild delete event received.");
+                dispatcher.onServerDelete(data.getString("id"));
+                break;
             case "MESSAGE_CREATE":
                 logger.debug(marker, "Message create event received.");
                 dispatcher.onMessage(MessageObject.deserialize(data, MessageObject.class));
@@ -308,14 +316,25 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
                 logger.debug(marker, "Message update event received");
                 dispatcher.onMessageUpdate(MessageObject.deserialize(data, MessageObject.class));
                 break;
+            case "MESSAGE_DELETE":
+                logger.debug(marker, "Message delete event received");
+                dispatcher.onMessageDelete(MessageDeleteResponse.deserialize(data, MessageDeleteResponse.class));
+                break;
+            case "MESSAGE_DELETE_BULK":
+                logger.debug(marker, "Message delete bulk event received");
+                dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
+                break;
             case "PRESENCE_UPDATE":
                 logger.debug(marker, "Presence update event received");
-                dispatcher.onPresenceChange(PresenceUpdateObject.deserialize(data, PresenceUpdateObject.class));
+                dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
                 break;
             case "TYPING_START":
                 logger.debug(marker, "Typing start event received");
-                dispatcher.onTypingStart(TypingStartObject.deserialize(data, TypingStartObject.class));
+                dispatcher.onTypingStart(TypingStartResponse.deserialize(data, TypingStartResponse.class));
                 break;
+            case "USER_UPDATE":
+                logger.debug(marker, "User update event received");
+                dispatcher.onUserUpdate(UserObject.deserialize(data, UserObject.class));
             default:
                 logger.warn(marker, "Unrecognized event received.");
                 break;

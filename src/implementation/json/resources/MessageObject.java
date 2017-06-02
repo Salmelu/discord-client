@@ -13,9 +13,9 @@ public class MessageObject extends JSONMappedObject {
     private LocalDateTime timestamp;
     private LocalDateTime editedTimestamp;
     private boolean tts;
-    private boolean atEveryone;
+    private boolean mentionEveryone;
     private UserObject[] mentions;
-    private String[] mentionedRoles;
+    private String[] mentionRoles;
     private AttachmentObject[] attachments;
     private EmbedObject[] embeds;
     private ReactionObject[] reactions;
@@ -79,12 +79,12 @@ public class MessageObject extends JSONMappedObject {
         this.tts = tts;
     }
 
-    public boolean isAtEveryone() {
-        return atEveryone;
+    public boolean isMentionEveryone() {
+        return mentionEveryone;
     }
 
-    public void setAtEveryone(boolean atEveryone) {
-        this.atEveryone = atEveryone;
+    public void setMentionEveryone(boolean mentionEveryone) {
+        this.mentionEveryone = mentionEveryone;
     }
 
     public UserObject[] getMentions() {
@@ -95,12 +95,12 @@ public class MessageObject extends JSONMappedObject {
         this.mentions = mentions;
     }
 
-    public String[] getMentionedRoles() {
-        return mentionedRoles;
+    public String[] getMentionRoles() {
+        return mentionRoles;
     }
 
-    public void setMentionedRoles(String[] mentionedRoles) {
-        this.mentionedRoles = mentionedRoles;
+    public void setMentionRoles(String[] mentionRoles) {
+        this.mentionRoles = mentionRoles;
     }
 
     public AttachmentObject[] getAttachments() {

@@ -64,10 +64,15 @@ public class NotifyManagerImpl implements NotifyManager {
                 else return 0;
             });
     private final Map<NotificationHandle, Notification> notificationMap = new HashMap<>();
+    private Dispatcher dispatcher;
 
     public NotifyManagerImpl() {
         queueLock = new ReentrantLock();
         queueCondition = queueLock.newCondition();
+    }
+
+    public void setDispatcher(Dispatcher dispatcher) {
+        this.dispatcher = dispatcher;
     }
 
     public void start() {
@@ -84,7 +89,7 @@ public class NotifyManagerImpl implements NotifyManager {
                 notifierThread.join();
             }
             catch(InterruptedException e) {
-                logger.warn(marker, "Interrupted notifier sleeping.");
+                logger.warn(marker, "Interrupted notifier joining.");
             }
         }
     }
@@ -154,7 +159,8 @@ public class NotifyManagerImpl implements NotifyManager {
             queueLock.unlock();
 
             // Process notifications
-            processNotification.forEach(notification -> notification.callback.call(notification.object));
+            processNotification.forEach(notification ->
+                    dispatcher.fireNotification(notification.callback, notification.object));
 
             // Schedule next
             queueLock.lock();
