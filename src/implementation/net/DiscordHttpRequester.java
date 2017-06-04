@@ -22,7 +22,7 @@ public class DiscordHttpRequester {
 
     private boolean stopped = false;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
     private final Marker marker = MarkerFactory.getMarker("HttpRequester");
 
     public DiscordHttpRequester(String token, RateLimiter limiter) {
@@ -91,11 +91,13 @@ public class DiscordHttpRequester {
                 if(response.getHeaders().getFirst("Content-Type").equals("application/json")) {
                     JSONObject object = new JSONObject(response.getBody());
                     logger.warn(marker, object.getString("message"));
+                    throw new DiscordRequestException(object.getString("message"), 304);
                 }
-                break;
+                throw new DiscordRequestException("Unknown error has happened.", 304);
             default:
                 // error, report it
                 logger.error(marker, "HTTP request returned error code " + response.getStatus());
+                throw new DiscordRequestException("Unknown error has happened.", response.getStatus());
         }
     }
 

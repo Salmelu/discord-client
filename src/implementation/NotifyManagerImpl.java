@@ -54,8 +54,8 @@ public class NotifyManagerImpl implements NotifyManager {
     private final Condition queueCondition;
     private final Lock queueLock;
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-    private final Marker marker = MarkerFactory.getMarker("NotifyManager");
+    private static final Logger logger = LoggerFactory.getLogger(NotifyManagerImpl.class.getSimpleName());
+    private static final Marker marker = MarkerFactory.getMarker("NotifyManager");
 
     private final PriorityQueue<Notification> notificationQueue =
             new PriorityQueue<>((n1, n2) -> {

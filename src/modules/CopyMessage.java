@@ -13,4 +13,9 @@ public class CopyMessage implements MessageListener {
     public void onMessage(Message message) {
         message.getChannel().sendMessage(message.getRawText());
     }
+
+    @Override
+    public String getName() {
+        return "copy";
+    }
 }

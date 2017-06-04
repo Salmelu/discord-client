@@ -1,12 +1,15 @@
 package cz.salmelu.discord.implementation.net;
 
+import cz.salmelu.discord.implementation.json.JSONMappedObject;
 import cz.salmelu.discord.implementation.json.request.HeartbeatRequest;
+import org.json.JSONObject;
 
 public class HeartbeatGenerator {
 
     private int interval = 1000;
     private DiscordWebSocket socket;
-    private volatile boolean active;
+    private volatile boolean active = false;
+    private volatile boolean paused = false;
     private volatile boolean heartbeatReceived = true;
     private long nextTick = 0;
     private Integer sequenceNumber = null;
@@ -56,14 +59,32 @@ public class HeartbeatGenerator {
         active = false;
     }
 
-    public void heartbeatReceived() {
+    public void pause() {
+        paused = true;
+    }
+
+    public void resume() {
+        paused = false;
+    }
+
+    public void heartbeatAck() {
         heartbeatReceived = true;
     }
 
     private void sendHeartbeat() {
-        final HeartbeatRequest request = new HeartbeatRequest();
-        request.setSequenceNumber(sequenceNumber);
-        socket.sendMessage(DiscordSocketMessage.HEARTBEAT, request);
+        if(paused) {
+            nextTick = System.currentTimeMillis() + 5000;
+            return;
+        }
+        JSONObject beat = new JSONObject();
+        beat.put("op", DiscordSocketMessage.HEARTBEAT);
+        if(sequenceNumber == null) {
+            beat.put("d", JSONObject.NULL);
+        }
+        else {
+            beat.put("d", sequenceNumber);
+        }
+        socket.sendMessage(beat.toString());
 
         heartbeatReceived = false;
         nextTick = System.currentTimeMillis() + interval;

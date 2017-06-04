@@ -14,6 +14,15 @@ public class RoleImpl implements Role {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof RoleImpl))return false;
+        RoleImpl otherCast = (RoleImpl) other;
+        return otherCast.getId().equals(getId());
+    }
+
+    @Override
     public String getId() {
         return originalObject.getId();
     }

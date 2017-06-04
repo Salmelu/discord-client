@@ -8,7 +8,11 @@ import cz.salmelu.discord.implementation.json.response.MessageDeleteBulkResponse
 import cz.salmelu.discord.implementation.json.response.MessageDeleteResponse;
 import cz.salmelu.discord.implementation.json.response.PresenceUpdateResponse;
 import cz.salmelu.discord.implementation.json.response.TypingStartResponse;
-import org.eclipse.jetty.websocket.*;
+
+import org.eclipse.jetty.util.ssl.SslContextFactory;
+import org.eclipse.jetty.websocket.api.Session;
+import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import org.eclipse.jetty.websocket.client.*;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +21,6 @@ import org.slf4j.MarkerFactory;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.ArrayList;
@@ -25,79 +28,85 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.InflaterInputStream;
 
-public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, WebSocket.OnBinaryMessage {
+public class DiscordWebSocket extends WebSocketAdapter {
 
     private static final String LIB_NAME = "salmelu-discord";
     private static final String LIB_VERSION = "0.0.1";
     private String token;
 
-    private final WebSocketClientFactory factory;
     private WebSocketClient client;
-    private Connection connection = null;
-    private HeartbeatGenerator heartbeatGenerator;
-    private Thread heartbeatThread;
+    private Session session = null;
+    private HeartbeatGenerator heartbeatGenerator = new HeartbeatGenerator(this);
+    private Thread heartbeatThread = null;
 
-    private Logger logger;
-    private Marker marker;
-    private DiscordWebSocketState state;
+    private Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
+    private Marker marker = MarkerFactory.getMarker("WebSocket");
+    private DiscordWebSocketState state = DiscordWebSocketState.CREATED;
     private Dispatcher dispatcher;
     private RateLimiter limiter;
 
     private URI uri;
     private int sequenceNumber = -1;
-    private String sessionId;
+    private String sessionId = null;
 
-    public DiscordWebSocket(String token, Dispatcher dispatcher, RateLimiter limiter) throws Exception {
+    public DiscordWebSocket(String token, Dispatcher dispatcher, RateLimiter limiter) {
         this.token = token;
         this.dispatcher = dispatcher;
         this.limiter = limiter;
 
-        logger = LoggerFactory.getLogger(getClass());
-        marker = MarkerFactory.getMarker("WebSocket");
-        state = DiscordWebSocketState.DISCONNECTED;
-
-        try {
-            factory = new WebSocketClientFactory();
-            factory.start();
-        }
-        catch (Exception e) {
-            throw new Error(e);
-        }
-
-        heartbeatGenerator = new HeartbeatGenerator(this);
+        this.state = DiscordWebSocketState.INITIALIZED;
     }
 
     public void connect(URI uri) {
+        if(this.state != DiscordWebSocketState.INITIALIZED) {
+            logger.error(marker, "Cannot connect to websocket without initializing properly.");
+            throw new Error("Cannot connect to websocket without initializing properly.");
+        }
         state = DiscordWebSocketState.CONNECTING;
         this.uri = uri;
+        this.client = new WebSocketClient(new SslContextFactory());
+        this.client.setDaemon(true);
+        this.client.getPolicy().setIdleTimeout(120000);
+        this.client.getPolicy().setMaxBinaryMessageSize(Integer.MAX_VALUE);
+        this.client.getPolicy().setMaxTextMessageSize(Integer.MAX_VALUE);
+        try {
+            this.client.start();
+        }
+        catch (Exception e) {
+            logger.error(marker, "Unable to start websocket client.", e);
+        }
         connect();
     }
 
     private void connect() {
         if(state == DiscordWebSocketState.READY) {
+            logger.warn(marker, "Connecting when the websocket is ready makes no sense.");
             return;
         }
         try {
-            if (connection != null) {
-                connection.close();
-                connection = null;
+            if (session != null) {
+                session.close();
+                session = null;
             }
-            client = factory.newWebSocketClient();
-            client.setMaxBinaryMessageSize(Integer.MAX_VALUE);
-            client.setMaxTextMessageSize(Integer.MAX_VALUE);
-            client.setMaxIdleTime(120000);
-            client.open(uri, this);
-
-            logger.debug(marker, "Opened connection to socket.");
+            ClientUpgradeRequest request = new ClientUpgradeRequest();
+            request.setRequestURI(uri);
+            client.connect(this, uri, request);
+            logger.debug(marker, "Requested connection to socket at uri " + uri.toString() + ".");
         }
         catch (Exception e) {
-            logger.error(marker, "Couldn't open connection to socket.");
+            logger.error(marker, "Couldn't open connection to socket.", e);
         }
     }
 
     public void disconnect() {
+        if(state != DiscordWebSocketState.READY) {
+            logger.warn(marker, "Attempting to disconnect not working websocket.");
+            return;
+        }
         state = DiscordWebSocketState.DISCONNECTING;
+        logger.info(marker, "Disconnecting from websocket.");
         if(heartbeatThread != null) {
+            logger.info(marker, "Stopping heartbeat generator.");
             heartbeatGenerator.stop();
             heartbeatThread.interrupt();
             try {
@@ -106,11 +115,12 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
             catch (InterruptedException e) {
                 logger.warn(marker, "Interrupted while waiting for heartbeat thread.");
             }
+            heartbeatThread = null;
         }
-        if(connection != null) {
-            connection.close(420, "Gracefully ending.");
+        if(session != null) {
+            session.close(1000, "Gracefully ending.");
         }
-        logger.debug(marker, "Closed connection to socket.");
+        logger.info(marker, "Closed connection to socket.");
     }
 
     public DiscordWebSocketState getState() {
@@ -135,16 +145,33 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
             }
         }
 
-        sendMessage(message.toString());
+        if(op == DiscordSocketMessage.HEARTBEAT
+                || op == DiscordSocketMessage.RESUME
+                || op == DiscordSocketMessage.IDENTIFY) {
+            // Skip the checks
+            sendMessage0(message.toString());
+        }
+        else {
+            sendMessage(message.toString());
+        }
     }
 
-    public synchronized void sendMessage(String message) throws RuntimeException {
-        if(connection == null || !connection.isOpen()) {
+    public synchronized void sendMessage(String message) {
+        if(state != DiscordWebSocketState.READY) {
+            logger.warn(marker, "Cannot send messages when the connection is not ready, skipping.");
+            return;
+        }
+        sendMessage0(message);
+    }
+
+    private synchronized void sendMessage0(String message) {
+        if(session == null || !session.isOpen()) {
             logger.warn(marker, "No opened connection to socket.");
             return;
         }
         logger.debug(marker, "Sending message " + message.replace(token, "TOKEN"));
 
+        // Block until the gateway is ready to get new request
         long wait = limiter.checkGatewayLimit();
         while(wait > 0) {
             logger.warn(marker, "Request to status update is being rate limited, " +
@@ -158,27 +185,43 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
             wait = limiter.checkGatewayLimit();
         }
 
+        // Send the message
         try {
-            connection.sendMessage(message);
+            session.getRemote().sendString(message);
         }
-        catch (IOException e) {
+        catch (Exception e) {
             logger.warn(marker, "Sending message failed with an exception.", e);
         }
     }
 
     @Override
-    public void onOpen(WebSocket.Connection connection) {
+    public void onWebSocketError(Throwable cause) {
+        logger.error(marker, "Websocket threw an error: " + cause.getMessage());
+        cause.printStackTrace();
+    }
+
+    @Override
+    public void onWebSocketConnect(Session session) {
         logger.debug(marker, "Connection was successfully opened.");
-        this.connection = connection;
+        this.session = session;
     }
 
     @Override
-    public void onClose(int i, String s) {
-        logger.debug(marker, "Connection was closed, code = " + i + ", message = " + s);
+    public void onWebSocketClose(int code, String reason) {
+        this.state = DiscordWebSocketState.DISCONNECTED;
+        heartbeatGenerator.pause();
+        if(code == 1000) {
+            logger.debug(marker, "Connection was closed gracefully, code = " + code + ", message = " + reason);
+        }
+        else {
+            logger.warn(marker, "Connection was closed, code = " + code + ", message = " + reason);
+            if(sessionId != null) this.state = DiscordWebSocketState.RECONNECTING;
+            connect();
+        }
     }
 
     @Override
-    public void onMessage(String s) {
+    public void onWebSocketText(String s) {
         try {
             logger.debug(marker, "Received a message: " + s);
             JSONObject message = new JSONObject(s);
@@ -191,13 +234,12 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
                     dispatch(message.getJSONObject("d"), message.getString("t"));
                     break;
                 case DiscordSocketMessage.HEARTBEAT_ACK:
-                    heartbeatGenerator.heartbeatReceived();
+                    heartbeatGenerator.heartbeatAck();
                     break;
                 case DiscordSocketMessage.HELLO:
                     final HelloEvent event = JSONMappedObject.deserialize(message.getJSONObject("d"), HelloEvent.class);
                     heartbeatGenerator.setInterval(event.getHeartbeatInterval());
-                    heartbeatThread = new Thread(() -> heartbeatGenerator.start());
-                    heartbeatThread.start();
+                    heartbeatGenerator.resume();
                     if (state == DiscordWebSocketState.RECONNECTING) resume();
                     else identify();
                     break;
@@ -206,7 +248,16 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
                     connect();
                     break;
                 case DiscordSocketMessage.INVALID_SESSION:
-                    logger.error(marker, "Invalid session event received.");
+                    logger.warn(marker, "Invalid session event received.");
+                    final boolean resumable = message.getBoolean("d");
+                    try {
+                        Thread.sleep(3500);
+                    }
+                    catch(InterruptedException e) {
+                        logger.warn(marker, "Interrupted", e);
+                    }
+                    if(resumable) resume();
+                    else identify();
                     break;
                 default:
                     logger.warn(marker, "Invalid message type received.");
@@ -218,15 +269,16 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
     }
 
     @Override
-    public void onMessage(byte[] bytes, int offset, int len) {
+    public void onWebSocketBinary(byte[] bytes, int offset, int len) {
         BufferedReader reader = new BufferedReader(
                 new InputStreamReader(
                         new InflaterInputStream(
                                 new ByteArrayInputStream(bytes, offset, len))));
-        onMessage(reader.lines().collect(Collectors.joining()));
+        onWebSocketText(reader.lines().collect(Collectors.joining()));
     }
 
     private void resume() {
+        if(state != DiscordWebSocketState.RECONNECTING) return;
         state = DiscordWebSocketState.RESUMING;
 
         final ResumeRequest request = new ResumeRequest();
@@ -238,6 +290,7 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
     }
 
     public void requestOfflineMembers(String serverId, String username, int limit) {
+        if(state != DiscordWebSocketState.READY) return;
         JSONObject data = new JSONObject();
         data.put("guild_id", serverId);
         data.put("query", username);
@@ -251,6 +304,7 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
     }
 
     public void statusUpdate(String gameName, Long idle) {
+        if(state != DiscordWebSocketState.READY) return;
         final GameObject game = new GameObject();
         game.setName(gameName);
 
@@ -261,9 +315,10 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
     }
 
     private void identify() {
+        if(state != DiscordWebSocketState.CONNECTING) return;
         final IdentifyRequestProperties properties = new IdentifyRequestProperties();
+        properties.set$device(LIB_NAME);
         properties.set$browser(LIB_NAME);
-        properties.set$browser(LIB_VERSION);
 
         final IdentifyRequest request = new IdentifyRequest();
         request.setToken(token);
@@ -275,77 +330,78 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
     }
 
     public void timeout() {
+        if(state != DiscordWebSocketState.READY) return;
         state = DiscordWebSocketState.RECONNECTING;
-        heartbeatGenerator.stop();
-        heartbeatThread.interrupt();
-        connection.close(42, "");
-        connection = null;
-        try {
-            heartbeatThread.join();
-        }
-        catch(InterruptedException e) {
-            e.printStackTrace();
-        }
+        logger.warn(marker, "Detected heartbeat timeout.");
+        heartbeatGenerator.pause();
+        session.close(4006, "");
+        session = null;
         connect();
     }
 
     private synchronized void dispatch(JSONObject data, String type) {
-        if(state == DiscordWebSocketState.DISCONNECTING) return;
-        switch(type) {
-            case "READY":
-                state = DiscordWebSocketState.READY;
-                logger.debug(marker, "Ready event received.");
-                dispatchReady(data);
-                break;
-            case "RESUMED":
-                logger.debug(marker, "Resumed event received.");
-                break;
-            case "GUILD_CREATE":
-                logger.debug(marker, "Guild create event received.");
-                dispatcher.onServerCreate(ServerObject.deserialize(data, ServerObject.class));
-                break;
-            case "GUILD_DELETE":
-                logger.debug(marker, "Guild delete event received.");
-                dispatcher.onServerDelete(data.getString("id"));
-                break;
-            case "MESSAGE_CREATE":
-                logger.debug(marker, "Message create event received.");
-                dispatcher.onMessage(MessageObject.deserialize(data, MessageObject.class));
-                break;
-            case "MESSAGE_UPDATE":
-                logger.debug(marker, "Message update event received");
-                dispatcher.onMessageUpdate(MessageObject.deserialize(data, MessageObject.class));
-                break;
-            case "MESSAGE_DELETE":
-                logger.debug(marker, "Message delete event received");
-                dispatcher.onMessageDelete(MessageDeleteResponse.deserialize(data, MessageDeleteResponse.class));
-                break;
-            case "MESSAGE_DELETE_BULK":
-                logger.debug(marker, "Message delete bulk event received");
-                dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
-                break;
-            case "PRESENCE_UPDATE":
-                logger.debug(marker, "Presence update event received");
-                dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
-                break;
-            case "TYPING_START":
-                logger.debug(marker, "Typing start event received");
-                dispatcher.onTypingStart(TypingStartResponse.deserialize(data, TypingStartResponse.class));
-                break;
-            case "USER_UPDATE":
-                logger.debug(marker, "User update event received");
-                dispatcher.onUserUpdate(UserObject.deserialize(data, UserObject.class));
-            default:
-                logger.warn(marker, "Unrecognized event received.");
-                break;
+        try {
+            if (state == DiscordWebSocketState.DISCONNECTING) return;
+            switch (type) {
+                case "READY":
+                    state = DiscordWebSocketState.READY;
+                    logger.debug(marker, "Ready event received.");
+                    dispatchReady(data);
+                    break;
+                case "RESUMED":
+                    state = DiscordWebSocketState.READY;
+                    logger.debug(marker, "Resumed event received.");
+                    break;
+                case "GUILD_CREATE":
+                    logger.debug(marker, "Guild create event received.");
+                    dispatcher.onServerCreate(ServerObject.deserialize(data, ServerObject.class));
+                    break;
+                case "GUILD_DELETE":
+                    logger.debug(marker, "Guild delete event received.");
+                    dispatcher.onServerDelete(data.getString("id"));
+                    break;
+                case "MESSAGE_CREATE":
+                    logger.debug(marker, "Message create event received.");
+                    dispatcher.onMessage(MessageObject.deserialize(data, MessageObject.class));
+                    break;
+                case "MESSAGE_UPDATE":
+                    logger.debug(marker, "Message update event received");
+                    dispatcher.onMessageUpdate(MessageObject.deserialize(data, MessageObject.class));
+                    break;
+                case "MESSAGE_DELETE":
+                    logger.debug(marker, "Message delete event received");
+                    dispatcher.onMessageDelete(MessageDeleteResponse.deserialize(data, MessageDeleteResponse.class));
+                    break;
+                case "MESSAGE_DELETE_BULK":
+                    logger.debug(marker, "Message delete bulk event received");
+                    dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
+                    break;
+                case "PRESENCE_UPDATE":
+                    logger.debug(marker, "Presence update event received");
+                    dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
+                    break;
+                case "TYPING_START":
+                    logger.debug(marker, "Typing start event received");
+                    dispatcher.onTypingStart(TypingStartResponse.deserialize(data, TypingStartResponse.class));
+                    break;
+                case "USER_UPDATE":
+                    logger.debug(marker, "User update event received");
+                    dispatcher.onUserUpdate(UserObject.deserialize(data, UserObject.class));
+                default:
+                    logger.warn(marker, "Unrecognized event received.");
+                    break;
+            }
+        }
+        catch(Exception e) {
+            e.printStackTrace();
         }
     }
 
     // This one is a bit special, handle with caution
     private void dispatchReady(JSONObject data) {
-        int version = data.getInt("v");
+        //int version = data.getInt("v");
         sessionId = data.getString("session_id");
-        final UserObject user = UserObject.deserialize(data.getJSONObject("user"), UserObject.class);
+        //final UserObject user = UserObject.deserialize(data.getJSONObject("user"), UserObject.class);
 
         final List<PrivateChannelObject> privateList = new ArrayList<>();
         for (Object channel : data.getJSONArray("private_channels")) {
@@ -361,7 +417,12 @@ public class DiscordWebSocket implements WebSocket, WebSocket.OnTextMessage, Web
         }
         final UnavailableServerObject[] servers = serverList.toArray(new UnavailableServerObject[serverList.size()]);
 
-        dispatcher.onReady(user, privateChannels, servers);
-    }
+        if(heartbeatThread == null) {
+            logger.debug(marker, "Starting heartbeat thread.");
+            heartbeatThread = new Thread(() -> heartbeatGenerator.start());
+            heartbeatThread.start();
+        }
 
+        dispatcher.onReady(privateChannels, servers);
+    }
 }

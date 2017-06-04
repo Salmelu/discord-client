@@ -5,7 +5,7 @@ import java.util.Date;
 public class ServerMemberObject {
     private UserObject user;
     private String nickname;
-    private RoleObject[] roles;
+    private String[] roles;
     private Date joinedAt;
     private boolean deaf;
     private boolean muted;
@@ -26,11 +26,11 @@ public class ServerMemberObject {
         this.nickname = nickname;
     }
 
-    public RoleObject[] getRoles() {
+    public String[] getRoles() {
         return roles;
     }
 
-    public void setRoles(RoleObject[] roles) {
+    public void setRoles(String[] roles) {
         this.roles = roles;
     }
 

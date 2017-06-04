@@ -35,6 +35,15 @@ public class ChannelImpl implements Channel {
         calculatePermissions();
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof ChannelImpl))return false;
+        ChannelImpl otherCast = (ChannelImpl) other;
+        return otherCast.getId().equals(getId());
+    }
+
     // called when server becomes unavailable... prevents doing any actions with it
     public void resetPermissions() {
         currentPermissions = 0;

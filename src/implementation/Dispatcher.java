@@ -30,15 +30,17 @@ public class Dispatcher {
     private final ClientImpl client;
     private final ModuleManager moduleManager;
 
-    private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class);
+    private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class.getSimpleName());
     private static final Marker marker = MarkerFactory.getMarker("Dispatcher");
 
     private boolean ignoreOwnMessages;
     private boolean ignoreBotMessages;
+    private final String helpCommand;
 
-    public Dispatcher(ClientImpl client, ModuleManager manager) {
+    public Dispatcher(ClientImpl client, ModuleManager manager, String helpCommand) {
         this.client = client;
         this.moduleManager = manager;
+        this.helpCommand = helpCommand;
     }
 
     /**
@@ -78,9 +80,8 @@ public class Dispatcher {
         }
     }
 
-    public synchronized void onReady(UserObject userObject, PrivateChannelObject[] privateChannelObjects,
+    public synchronized void onReady(PrivateChannelObject[] privateChannelObjects,
                         UnavailableServerObject[] serverObjects) {
-        client.setMyUser(new UserImpl(client, userObject));
         moduleManager.getInitializers().forEach(listener -> Wrapper.wrap(listener::onReady, client));
     }
 
@@ -127,13 +128,15 @@ public class Dispatcher {
 
     public synchronized void onMessageUpdate(MessageObject messageObject) {
         final MessageImpl message = new MessageImpl(client, messageObject);
-        if(ignoreBotMessages && messageObject.getAuthor().isBot()) {
-            logger.debug(marker, "Skipping a bot message.");
-            return;
-        }
-        if(ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
-            logger.debug(marker, "Skipping own message.");
-            return;
+        if(message.getAuthor() != null) {
+            if (ignoreBotMessages && messageObject.getAuthor().isBot()) {
+                logger.debug(marker, "Skipping a bot message.");
+                return;
+            }
+            if (ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
+                logger.debug(marker, "Skipping own message.");
+                return;
+            }
         }
         moduleManager.getMessageListeners().forEach(listener -> Wrapper.wrap(listener::onMessageUpdate, message));
     }
@@ -160,7 +163,23 @@ public class Dispatcher {
             return;
         }
         if(ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
-            logger.debug(marker, "Skipping own message.");
+            logger.debug(marker, "Skipping your own message.");
+            return;
+        }
+        if(message.getRawText().trim().equals(helpCommand)) {
+            message.getChannel().sendMessage(moduleManager.generateCommandList());
+            return;
+        }
+        if(message.getRawText().startsWith(helpCommand)) {
+            final String[] parts = message.getRawText().split(" ", 2);
+            final String name = parts[1];
+            final MessageListener listener = moduleManager.getMessageListener(name);
+            if(listener == null) {
+                message.getChannel().sendMessage("Unknown command `" + name + "`.");
+            }
+            else {
+                message.getChannel().sendMessage(listener.getDescription());
+            }
             return;
         }
 

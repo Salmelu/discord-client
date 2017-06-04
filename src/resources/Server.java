@@ -17,4 +17,8 @@ public interface Server {
     List<Role> getRoles();
     Role getRoleById(String id);
     Role getRoleByName(String name);
+
+    List<Member> getMembers();
+    Member getMemberById(String id);
+    Member getMemberByNickname(String nickname);
 }

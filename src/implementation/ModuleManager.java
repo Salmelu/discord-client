@@ -10,12 +10,15 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ModuleManager {
 
     private final List<Initializer> initializers = new ArrayList<>();
     private final List<MessageListener> messageListeners = new ArrayList<>();
+    private final HashMap<String, MessageListener> messageListenersByName = new HashMap<>();
     private final List<UserActionListener> actionListeners = new ArrayList<>();
     private final List<ServerListener> serverListeners = new ArrayList<>();
     private final Context context;
@@ -25,31 +28,39 @@ public class ModuleManager {
     }
 
     public void addModule(Class<?> moduleClass) {
-        Object module;
+        Object module = null;
         Constructor<?> constructor = null;
         try {
-            constructor = moduleClass.getConstructor(Context.class);
-        }
-        catch(NoSuchMethodException e) {
-            // Not found, okay
-        }
-        try {
-            if(constructor != null) {
-                module = constructor.newInstance(context);
+            try {
+                constructor = moduleClass.getConstructor(Context.class);
             }
-            else {
-                module = moduleClass.newInstance();
+            catch (NoSuchMethodException e) {
+                // Not found, okay
+            }
+            try {
+                if (constructor != null) {
+                    module = constructor.newInstance(context);
+                }
+                else {
+                    module = moduleClass.newInstance();
+                }
+            }
+            catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                e.printStackTrace();
+                throw new IllegalArgumentException("Invalid class supplied as a module.");
             }
         }
-        catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            throw new IllegalArgumentException("Invalid class supplied as a module.");
+        catch(Exception e) {
+            e.printStackTrace();
         }
 
         if(Initializer.class.isAssignableFrom(moduleClass)) {
             initializers.add((Initializer) module);
         }
         if(MessageListener.class.isAssignableFrom(moduleClass)) {
-            messageListeners.add((MessageListener) module);
+            final MessageListener ml = (MessageListener) module;
+            messageListeners.add(ml);
+            if(ml.getName() != null) messageListenersByName.put(ml.getName(), ml);
         }
         if (UserActionListener.class.isAssignableFrom(moduleClass)) {
             actionListeners.add((UserActionListener) module);
@@ -72,11 +83,22 @@ public class ModuleManager {
         return messageListeners;
     }
 
+    public MessageListener getMessageListener(String name) {
+        return messageListenersByName.get(name);
+    }
+
     public List<UserActionListener> getUserActionListeners() {
         return actionListeners;
     }
 
     public List<ServerListener> getServerListeners() {
         return serverListeners;
+    }
+
+    public String generateCommandList() {
+        final String commandList = messageListeners.stream().filter(MessageListener::isVisibleInHelp)
+                .map(MessageListener::getName).collect(Collectors.joining(", "));
+        return "```\nAvailable commands: " + commandList + "\n```\n"
+                + "For details about a specific command, ask for help with the command name.";
     }
 }

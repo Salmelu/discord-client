@@ -6,14 +6,10 @@ import cz.salmelu.discord.resources.Message;
 import java.util.List;
 
 public interface MessageListener extends Initializer {
-    default boolean matchMessage(Message message) {
-        return false;
-    }
+    boolean matchMessage(Message message);
 
     // Only if match message returned true
-    default void onMessage(Message message) {
-
-    }
+    void onMessage(Message message);
 
     default void onMessageUpdate(Message message) {
 
@@ -21,6 +17,16 @@ public interface MessageListener extends Initializer {
 
     default void onMessageDelete(List<DeletedMessage> messages) {
 
+    }
+
+    default boolean isVisibleInHelp() {
+        return false;
+    }
+
+    String getName();
+
+    default String getDescription() {
+        return "";
     }
 
     default int getPriority() {

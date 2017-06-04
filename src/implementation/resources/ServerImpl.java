@@ -2,6 +2,7 @@ package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
 import cz.salmelu.discord.resources.Channel;
+import cz.salmelu.discord.resources.Member;
 import cz.salmelu.discord.resources.Role;
 import cz.salmelu.discord.resources.Server;
 
@@ -19,7 +20,9 @@ public class ServerImpl implements Server {
     private final List<Role> roleList = new ArrayList<>();
     private final Map<String, Role> rolesById = new HashMap<>();
     private final Map<String, Role> rolesByName = new HashMap<>();
-    private final Map<String, MemberImpl> members = new HashMap<>();
+    private final List<MemberImpl> memberList = new ArrayList<>();
+    private final Map<String, MemberImpl> membersById = new HashMap<>();
+    private final Map<String, MemberImpl> membersByNick = new HashMap<>();
 
     private boolean disabled = false;
     private RoleImpl everyoneRole;
@@ -45,7 +48,12 @@ public class ServerImpl implements Server {
                 client.addUser(user);
             }
             final MemberImpl memberRef = new MemberImpl(client, this, user, member);
-            members.put(memberRef.getId(), memberRef);
+            memberList.add(memberRef);
+            membersById.put(memberRef.getId(), memberRef);
+            membersByNick.put(memberRef.getNickname() == null
+                    ? memberRef.getUser().getName()
+                    : memberRef.getNickname(),
+                    memberRef);
             if(memberRef.getId().equals(client.getMyUser().getId())) {
                 me = memberRef;
             }
@@ -58,6 +66,15 @@ public class ServerImpl implements Server {
             channelsById.put(channelRef.getId(), channelRef);
         });
         client.addChannels(channelList);
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof ServerImpl))return false;
+        ServerImpl otherCast = (ServerImpl) other;
+        return otherCast.getId().equals(getId());
     }
 
     public MemberImpl getMe() {
@@ -122,5 +139,20 @@ public class ServerImpl implements Server {
     @Override
     public Role getRoleByName(String name) {
         return rolesByName.get(name);
+    }
+
+    @Override
+    public List<Member> getMembers() {
+        return Collections.unmodifiableList(memberList);
+    }
+
+    @Override
+    public Member getMemberById(String id) {
+        return membersById.get(id);
+    }
+
+    @Override
+    public Member getMemberByNickname(String nickname) {
+        return membersByNick.get(nickname);
     }
 }

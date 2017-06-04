@@ -1,10 +1,9 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.Dispatcher;
-import cz.salmelu.discord.implementation.net.DiscordHttpRequester;
-import cz.salmelu.discord.implementation.net.Endpoint;
-import cz.salmelu.discord.implementation.net.DiscordWebSocket;
-import cz.salmelu.discord.implementation.net.RateLimiter;
+import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.resources.UserObject;
+import cz.salmelu.discord.implementation.net.*;
 import cz.salmelu.discord.resources.Channel;
 import cz.salmelu.discord.resources.Client;
 import cz.salmelu.discord.resources.Server;
@@ -12,6 +11,7 @@ import cz.salmelu.discord.resources.User;
 import org.json.JSONObject;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -39,12 +39,31 @@ public class ClientImpl implements Client {
         final JSONObject gatewayResponse = requester.getRequestAsObject(Endpoint.GATEWAY);
         final String gateway = gatewayResponse.getString("url") + "?v=5&encoding=json";
 
+        URI uri;
         try {
-            socket = new DiscordWebSocket(botToken, dispatcher, limiter);
-            socket.connect(new URI(gateway));
+            uri = new URI(gateway);
         }
-        catch (Exception e) {
+        catch (URISyntaxException e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
+        }
+
+        socket = new DiscordWebSocket(botToken, dispatcher, limiter);
+        socket.connect(uri);
+    }
+
+    public void verifyUser() {
+        try {
+            JSONObject userObject = getRequester().getRequestAsObject(Endpoint.MY_USER);
+            myUser = new UserImpl(this, JSONMappedObject.deserialize(userObject, UserObject.class));
+        }
+        catch (DiscordRequestException e) {
+            if(e.getResponseCode() == 401 || e.getResponseCode() == 403) {
+                throw new IllegalArgumentException("The access token used is invalid.");
+            }
+            else {
+                throw e;
+            }
         }
     }
 
@@ -57,6 +76,8 @@ public class ClientImpl implements Client {
         this.botToken = token;
         this.limiter = new RateLimiter();
         this.requester = new DiscordHttpRequester(botToken, limiter);
+
+        verifyUser();
     }
 
     public DiscordWebSocket getSocket() {

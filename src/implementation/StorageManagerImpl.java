@@ -18,7 +18,7 @@ public class StorageManagerImpl implements StorageManager {
     private final HashMap<Class<?>, HashMap<String, StorageImpl>> storageMap = new HashMap<>();
     private static final String storagePath = "storage/";
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
     private final Marker marker = MarkerFactory.getMarker("StorageManager");
 
     public StorageManagerImpl() {
@@ -56,9 +56,11 @@ public class StorageManagerImpl implements StorageManager {
     }
 
     public synchronized void saveAll() {
+        logger.info(marker, "Saving all storages...");
         for (Map.Entry<Class<?>, HashMap<String, StorageImpl>> classEntry : storageMap.entrySet()) {
             save(classEntry.getKey());
         }
+        logger.info(marker, "Done.");
     }
 
     @SuppressWarnings("unchecked")

@@ -24,8 +24,22 @@ public class UserImpl implements cz.salmelu.discord.resources.User {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof UserImpl))return false;
+        UserImpl otherCast = (UserImpl) other;
+        return otherCast.getId().equals(getId());
+    }
+
+    @Override
     public String getId() {
         return originalObject.getId();
+    }
+
+    @Override
+    public String getName() {
+        return originalObject.getUsername();
     }
 
     @Override

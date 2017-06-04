@@ -20,7 +20,7 @@ public class DelayCopyMessage implements MessageListener {
 
     @Override
     public boolean matchMessage(Message message) {
-        return message.getRawText().startsWith("+");
+        return false; /*message.getRawText().startsWith("+");*/
     }
 
     @Override
@@ -31,5 +31,10 @@ public class DelayCopyMessage implements MessageListener {
         context.getNotifyManager().addNotification(last, o -> {
             message.getChannel().sendMessage((String) o);
         }, LocalDateTime.now().plusSeconds(10));
+    }
+
+    @Override
+    public String getName() {
+        return "delaycopy";
     }
 }

@@ -1,8 +1,7 @@
 package cz.salmelu.discord.implementation;
 
 import cz.salmelu.discord.implementation.resources.ClientImpl;
-import cz.salmelu.discord.modules.CopyMessage;
-import cz.salmelu.discord.modules.DelayCopyMessage;
+import cz.salmelu.discord.modules.*;
 
 public class DiscordClient {
 
@@ -20,10 +19,12 @@ public class DiscordClient {
     }
 
     public DiscordClient() {
+        final String helpCommand = "+help";
+
         context = new ContextImpl();
         client = new ClientImpl(Secret.token);
         manager = new ModuleManager(context);
-        dispatcher = new Dispatcher(client, manager);
+        dispatcher = new Dispatcher(client, manager, helpCommand);
         dispatcher.ignoreBotMessages(true);
         client.login(dispatcher);
 
@@ -32,6 +33,9 @@ public class DiscordClient {
 
         manager.addModule(CopyMessage.class);
         manager.addModule(DelayCopyMessage.class);
+        manager.addModule(Roller.class);
+        manager.addModule(CitadelWatcher.class);
+        manager.addModule(InstanceTracker.class);
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
     }

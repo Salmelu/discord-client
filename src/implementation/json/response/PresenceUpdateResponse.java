@@ -9,7 +9,7 @@ import cz.salmelu.discord.resources.PresenceStatus;
 public class PresenceUpdateResponse extends JSONMappedObject {
     private UserObject user;
     private PresenceStatus status;
-    private RoleObject[] roles;
+    private String[] roles;
     private String nick;
     private String guildId;
     private GameObject game;
@@ -30,11 +30,11 @@ public class PresenceUpdateResponse extends JSONMappedObject {
         this.status = status;
     }
 
-    public RoleObject[] getRoles() {
+    public String[] getRoles() {
         return roles;
     }
 
-    public void setRoles(RoleObject[] roles) {
+    public void setRoles(String[] roles) {
         this.roles = roles;
     }
 

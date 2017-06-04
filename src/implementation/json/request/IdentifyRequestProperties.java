@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.request;
 
 public class IdentifyRequestProperties {
-    private String $os;
+    private String $os = System.getProperty("os.name");
     private String $browser;
-    private String $name = System.getProperty("os.name");
+    private String $device;
     private String $referrer = "";
     private String $referringDomain = "";
 
@@ -23,12 +23,12 @@ public class IdentifyRequestProperties {
         this.$browser = $browser;
     }
 
-    public String get$name() {
-        return $name;
+    public String get$device() {
+        return $device;
     }
 
-    public void set$name(String $name) {
-        this.$name = $name;
+    public void set$device(String $device) {
+        this.$device = $device;
     }
 
     public String get$referrer() {
