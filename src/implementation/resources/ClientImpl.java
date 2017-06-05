@@ -4,10 +4,7 @@ import cz.salmelu.discord.implementation.Dispatcher;
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.net.*;
-import cz.salmelu.discord.resources.Channel;
-import cz.salmelu.discord.resources.Client;
-import cz.salmelu.discord.resources.Server;
-import cz.salmelu.discord.resources.User;
+import cz.salmelu.discord.resources.*;
 import org.json.JSONObject;
 
 import java.net.URI;
@@ -116,7 +113,7 @@ public class ClientImpl implements Client {
         usersById.put(user.getId(), user);
     }
 
-    public UserImpl findUser(String id) {
+    public UserImpl getUser(String id) {
         return (UserImpl) usersById.get(id);
     }
 
@@ -140,8 +137,19 @@ public class ClientImpl implements Client {
         return serversByName.get(name);
     }
 
-    public synchronized void addChannels(List<Channel> channels) {
-        for(Channel channel : channels) {
+    public synchronized void addChannel(Channel channel) {
+        channelList.add(channel);
+        channelsById.put(channel.getId(),channel);
+    }
+
+    public synchronized void removeChannel(Channel channel) {
+        channelList.remove(channel);
+        channelsById.remove(channel.getId());
+        if(!channel.isPrivate()) channelsByName.remove(channel.toServerChannel().getName());
+    }
+
+    public synchronized void addChannels(List<ServerChannel> channels) {
+        for(ServerChannel channel : channels) {
             channelList.add(channel);
             channelsByName.put(channel.getName(), channel);
             channelsById.put(channel.getId(), channel);

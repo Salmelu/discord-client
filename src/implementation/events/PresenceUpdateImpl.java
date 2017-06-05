@@ -24,7 +24,7 @@ public class PresenceUpdateImpl implements PresenceUpdate {
     public User getUser() {
         final UserObject userObject = originalObject.getUser();
         if(userObject == null) return null;
-        User user = client.findUser(userObject.getId());
+        User user = client.getUser(userObject.getId());
         if(user == null) {
             final UserImpl newUser = new UserImpl(client, userObject);
             client.addUser(newUser);

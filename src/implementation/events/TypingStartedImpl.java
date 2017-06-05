@@ -18,7 +18,7 @@ public class TypingStartedImpl implements TypingStarted {
     @Override
     public User getUser() {
         // TODO: document it can return null, if the user is unknown
-        return client.findUser(originalObject.getUserId());
+        return client.getUser(originalObject.getUserId());
     }
 
     @Override

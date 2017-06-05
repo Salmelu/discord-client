@@ -71,7 +71,7 @@ public class HeartbeatGenerator {
         heartbeatReceived = true;
     }
 
-    private void sendHeartbeat() {
+    void sendHeartbeat() {
         if(paused) {
             nextTick = System.currentTimeMillis() + 5000;
             return;

@@ -1,10 +1,10 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.implementation.json.resources.RoleObject;
+import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
-import cz.salmelu.discord.resources.Channel;
-import cz.salmelu.discord.resources.Member;
-import cz.salmelu.discord.resources.Role;
-import cz.salmelu.discord.resources.Server;
+import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
+import cz.salmelu.discord.resources.*;
 
 import java.util.*;
 
@@ -14,9 +14,9 @@ public class ServerImpl implements Server {
     private final ServerObject originalObject;
 
     private final ClientImpl client;
-    private final List<Channel> channelList = new ArrayList<>();
-    private final Map<String, Channel> channelsByName = new HashMap<>();
-    private final Map<String, Channel> channelsById = new HashMap<>();
+    private final List<ServerChannel> channelList = new ArrayList<>();
+    private final Map<String, ServerChannel> channelsByName = new HashMap<>();
+    private final Map<String, ServerChannel> channelsById = new HashMap<>();
     private final List<Role> roleList = new ArrayList<>();
     private final Map<String, Role> rolesById = new HashMap<>();
     private final Map<String, Role> rolesByName = new HashMap<>();
@@ -42,7 +42,7 @@ public class ServerImpl implements Server {
         });
 
         Arrays.stream(serverObject.getMembers()).forEach((member) -> {
-            UserImpl user = client.findUser(member.getUser().getId());
+            UserImpl user = client.getUser(member.getUser().getId());
             if(user == null) {
                 user = new UserImpl(client, member.getUser());
                 client.addUser(user);
@@ -60,7 +60,7 @@ public class ServerImpl implements Server {
         });
 
         Arrays.stream(serverObject.getChannels()).forEach((channel) -> {
-            final ChannelImpl channelRef = new ChannelImpl(client, this, channel);
+            final ServerChannelImpl channelRef = new ServerChannelImpl(client, this, channel);
             channelList.add(channelRef);
             channelsByName.put(channelRef.getName(), channelRef);
             channelsById.put(channelRef.getId(), channelRef);
@@ -92,6 +92,113 @@ public class ServerImpl implements Server {
         disabled = true;
     }
 
+    public boolean isDisabled() {
+        return disabled;
+    }
+
+    public void addChannel(ServerChannel channel) {
+        channelList.add(channel);
+        channelsById.put(channel.getId(), channel);
+        channelsByName.put(channel.getName(), channel);
+        client.addChannel(channel);
+    }
+
+    public void removeChannel(ServerChannel channel) {
+        channelList.remove(channel);
+        channelsById.remove(channel.getId());
+        channelsByName.remove(channel.getName());
+        client.removeChannel(channel);
+    }
+
+    public void update(ServerObject serverObject) {
+        originalObject.setName(serverObject.getName());
+        originalObject.setIconHash(serverObject.getIconHash());
+        originalObject.setOwnerId(serverObject.getOwnerId());
+        originalObject.setRegion(serverObject.getRegion());
+        originalObject.setAfkChannelId(serverObject.getAfkChannelId());
+        originalObject.setAfkTimeout(serverObject.getAfkTimeout());
+        originalObject.setEmbedEnabled(serverObject.isEmbedEnabled());
+        originalObject.setEmbedChannelId(serverObject.getEmbedChannelId());
+        originalObject.setVeriticationLevel(serverObject.getVeriticationLevel());
+        originalObject.setDefaultMessageNotifications(serverObject.getDefaultMessageNotifications());
+        originalObject.setRoles(serverObject.getRoles());
+        originalObject.setEmojis(serverObject.getEmojis());
+        originalObject.setFeatures(serverObject.getFeatures());
+        originalObject.setMfaLevel(serverObject.getMfaLevel());
+
+        updateRoles();
+        channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
+    }
+
+    private void updateRoles() {
+        List<RoleImpl> newRoleList = new ArrayList<>();
+        Arrays.stream(originalObject.getRoles()).forEach((role) -> {
+            RoleImpl roleUpdate = (RoleImpl) rolesById.get(role.getId());
+            if(roleUpdate != null) {
+                roleUpdate.update(role);
+                newRoleList.add(roleUpdate);
+            }
+            else {
+                roleUpdate = new RoleImpl(this, role);
+                newRoleList.add(roleUpdate);
+            }
+        });
+        roleList.clear();
+        rolesByName.clear();
+        rolesById.clear();
+        newRoleList.forEach(role -> {
+            roleList.add(role);
+            rolesById.put(role.getId(), role);
+            rolesByName.put(role.getName(), role);
+            if(role.getName().equals("@everyone")) everyoneRole = role;
+        });
+    }
+
+    public Role addRole(RoleObject object) {
+        final RoleImpl role = new RoleImpl(this, object);
+        roleList.add(role);
+        rolesById.put(role.getId(), role);
+        rolesByName.put(role.getName(), role);
+        return role;
+    }
+
+    public void removeRole(String roleId) {
+        final Role role = rolesById.remove(roleId);
+        roleList.remove(role);
+        rolesByName.remove(role.getName());
+    }
+
+    public void addMember(ServerMemberObject memberObject) {
+        UserImpl user = client.getUser(memberObject.getUser().getId());
+        if(user == null) {
+            user = new UserImpl(client, memberObject.getUser());
+            client.addUser(user);
+        }
+        final MemberImpl memberRef = new MemberImpl(client, this, user, memberObject);
+        memberList.add(memberRef);
+        membersById.put(memberRef.getId(), memberRef);
+        membersByNick.put(memberRef.getNickname() == null
+                        ? memberRef.getUser().getName()
+                        : memberRef.getNickname(),
+                memberRef);
+        if(memberRef.getId().equals(client.getMyUser().getId())) {
+            me = memberRef;
+        }
+    }
+
+    public void removeMember(User userObject) {
+        MemberImpl removed = membersById.remove(userObject.getId());
+        memberList.remove(removed);
+        membersByNick.remove(removed.getNickname());
+    }
+
+    public void updateMember(ServerMemberUpdateResponse memberObject) {
+        MemberImpl member = membersById.get(memberObject.getUser().getId());
+        member.setNickname(memberObject.getNick());
+        member.setRoles(memberObject.getRoles());
+        ((UserImpl) member.getUser()).update(memberObject.getUser());
+    }
+
     public ClientImpl getClient() {
         return client;
     }
@@ -107,17 +214,17 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public List<Channel> getChannels() {
+    public List<ServerChannel> getChannels() {
         return Collections.unmodifiableList(channelList);
     }
 
     @Override
-    public Channel getChannelById(String id) {
+    public ServerChannel getChannelById(String id) {
         return channelsById.get(id);
     }
 
     @Override
-    public Channel getChannelByName(String name) {
+    public ServerChannel getChannelByName(String name) {
         return channelsByName.get(name);
     }
 

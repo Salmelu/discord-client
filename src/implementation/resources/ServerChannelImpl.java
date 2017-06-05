@@ -5,17 +5,14 @@ import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.net.Endpoint;
-import cz.salmelu.discord.resources.Channel;
-import cz.salmelu.discord.resources.PermissionOverwriteType;
-import cz.salmelu.discord.resources.Role;
-import cz.salmelu.discord.resources.Server;
+import cz.salmelu.discord.resources.*;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class ChannelImpl implements Channel {
+public class ServerChannelImpl implements ServerChannel {
 
     private final String id;
     private final ChannelObject originalObject;
@@ -25,7 +22,7 @@ public class ChannelImpl implements Channel {
 
     private long currentPermissions;
 
-    public ChannelImpl(ClientImpl client, ServerImpl server, ChannelObject channelObject) {
+    public ServerChannelImpl(ClientImpl client, ServerImpl server, ChannelObject channelObject) {
         this.id = channelObject.getId();
         this.originalObject = channelObject;
 
@@ -39,14 +36,27 @@ public class ChannelImpl implements Channel {
     public boolean equals(Object other) {
         if (other == null) return false;
         if (other == this) return true;
-        if (!(other instanceof ChannelImpl))return false;
-        ChannelImpl otherCast = (ChannelImpl) other;
+        if (!(other instanceof ServerChannelImpl))return false;
+        ServerChannelImpl otherCast = (ServerChannelImpl) other;
         return otherCast.getId().equals(getId());
     }
 
     // called when server becomes unavailable... prevents doing any actions with it
     public void resetPermissions() {
         currentPermissions = 0;
+    }
+
+    public void update(ChannelObject channelObject) {
+        originalObject.setName(channelObject.getName());
+        originalObject.setType(channelObject.getType());
+        originalObject.setPosition(channelObject.getPosition());
+        originalObject.setPermissionOverwrites(channelObject.getPermissionOverwrites());
+        originalObject.setTopic(channelObject.getTopic());
+        originalObject.setLastMessageId(channelObject.getLastMessageId());
+        originalObject.setBitrate(channelObject.getBitrate());
+        originalObject.setUserLimit(channelObject.getUserLimit());
+
+        calculatePermissions();
     }
 
     /**
@@ -56,7 +66,7 @@ public class ChannelImpl implements Channel {
      *
      * Calculated permissions are saved in a local field to avoid recalculating everytime
      */
-    private void calculatePermissions() {
+    public void calculatePermissions() {
         if(originalObject.getPermissionOverwrites().length == 0) {
             currentPermissions = server.getPermissions();
             return;
@@ -120,6 +130,11 @@ public class ChannelImpl implements Channel {
     }
 
     @Override
+    public boolean isPrivate() {
+        return false;
+    }
+
+    @Override
     public boolean canSendMessage() {
         return checkPermission(PermissionHelper::canSendMessages);
     }
@@ -132,5 +147,15 @@ public class ChannelImpl implements Channel {
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
         client.getRequester().postRequest(Endpoint.CHANNEL + "/" + id + "/messages", messageObject);
+    }
+
+    @Override
+    public ServerChannel toServerChannel() {
+        return this;
+    }
+
+    @Override
+    public PrivateChannel toPrivateChannel() {
+        return null;
     }
 }

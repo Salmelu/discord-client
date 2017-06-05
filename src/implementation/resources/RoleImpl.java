@@ -22,6 +22,16 @@ public class RoleImpl implements Role {
         return otherCast.getId().equals(getId());
     }
 
+    public void update(RoleObject object) {
+        originalObject.setName(object.getName());
+        originalObject.setColor(object.getColor());
+        originalObject.setPermissions(object.getPermissions());
+        originalObject.setPosition(object.getPosition());
+        originalObject.setManaged(object.isManaged());
+        originalObject.setMentionable(object.isMentionable());
+        originalObject.setPinned(object.isPinned());
+    }
+
     @Override
     public String getId() {
         return originalObject.getId();

@@ -4,10 +4,7 @@ import cz.salmelu.discord.implementation.json.JSONMappedObject;
 import cz.salmelu.discord.implementation.json.resources.*;
 import cz.salmelu.discord.implementation.Dispatcher;
 import cz.salmelu.discord.implementation.json.request.*;
-import cz.salmelu.discord.implementation.json.response.MessageDeleteBulkResponse;
-import cz.salmelu.discord.implementation.json.response.MessageDeleteResponse;
-import cz.salmelu.discord.implementation.json.response.PresenceUpdateResponse;
-import cz.salmelu.discord.implementation.json.response.TypingStartResponse;
+import cz.salmelu.discord.implementation.json.response.*;
 
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
@@ -233,6 +230,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     heartbeatGenerator.updateSequence(sequenceNumber);
                     dispatch(message.getJSONObject("d"), message.getString("t"));
                     break;
+                case DiscordSocketMessage.HEARTBEAT:
+                    heartbeatGenerator.sendHeartbeat();
+                    break;
                 case DiscordSocketMessage.HEARTBEAT_ACK:
                     heartbeatGenerator.heartbeatAck();
                     break;
@@ -345,48 +345,95 @@ public class DiscordWebSocket extends WebSocketAdapter {
             switch (type) {
                 case "READY":
                     state = DiscordWebSocketState.READY;
-                    logger.debug(marker, "Ready event received.");
                     dispatchReady(data);
                     break;
                 case "RESUMED":
                     state = DiscordWebSocketState.READY;
-                    logger.debug(marker, "Resumed event received.");
+                    break;
+                case "CHANNEL_CREATE":
+                    if(data.getBoolean("is_private"))
+                        dispatcher.onChannelCreate(PrivateChannelObject.deserialize(data, PrivateChannelObject.class));
+                    else
+                        dispatcher.onChannelCreate(ChannelObject.deserialize(data, ChannelObject.class));
+                    break;
+                case "CHANNEL_UPDATE":
+                    dispatcher.onChannelUpdate(ChannelObject.deserialize(data, ChannelObject.class));
+                    break;
+                case "CHANNEL_DELETE":
+                    if(data.getBoolean("is_private"))
+                        dispatcher.onChannelDelete(PrivateChannelObject.deserialize(data, PrivateChannelObject.class));
+                    else
+                        dispatcher.onChannelDelete(ChannelObject.deserialize(data, ChannelObject.class));
                     break;
                 case "GUILD_CREATE":
-                    logger.debug(marker, "Guild create event received.");
                     dispatcher.onServerCreate(ServerObject.deserialize(data, ServerObject.class));
                     break;
                 case "GUILD_DELETE":
-                    logger.debug(marker, "Guild delete event received.");
                     dispatcher.onServerDelete(data.getString("id"));
                     break;
+                case "GUILD_UPDATE":
+                    dispatcher.onServerUpdate(ServerObject.deserialize(data, ServerObject.class));
+                    break;
+                case "GUILD_BAN_ADD":
+                    // Ignored
+                    break;
+                case "GUILD_BAN_REMOVE":
+                    // Ignored
+                    break;
+                case "GUILD_EMOJIS_UPDATE":
+                    // Ignored
+                    break;
+                case "GUILD_INTEGRATIONS_UPDATE":
+                    // Ignored
+                    break;
+                case "GUILD_MEMBER_ADD":
+                    dispatcher.onServerMemberAdd(ServerMemberAddResponse.deserialize(data, ServerMemberAddResponse.class));
+                    break;
+                case "GUILD_MEMBER_REMOVE":
+                    dispatcher.onServerMemberRemove(ServerMemberRemoveResponse.deserialize(data, ServerMemberRemoveResponse.class));
+                    break;
+                case "GUILD_MEMBER_UPDATE":
+                    dispatcher.onServerMemberUpdate(ServerMemberUpdateResponse.deserialize(data, ServerMemberUpdateResponse.class));
+                    break;
+                case "GUILD_MEMBER_CHUNK":
+                    dispatcher.onServerMemberChunk(ServerMemberChunkResponse.deserialize(data, ServerMemberChunkResponse.class));
+                    break;
+                case "GUILD_ROLE_CREATE":
+                    dispatcher.onRoleCreate(ServerRoleResponse.deserialize(data, ServerRoleResponse.class));
+                    break;
+                case "GUILD_ROLE_UPDATE":
+                    dispatcher.onRoleUpdate(ServerRoleResponse.deserialize(data, ServerRoleResponse.class));
+                    break;
+                case "GUILD_ROLE_DELETE":
+                    dispatcher.onRoleDelete(ServerRoleDeleteResponse.deserialize(data, ServerRoleDeleteResponse.class));
+                    break;
                 case "MESSAGE_CREATE":
-                    logger.debug(marker, "Message create event received.");
                     dispatcher.onMessage(MessageObject.deserialize(data, MessageObject.class));
                     break;
                 case "MESSAGE_UPDATE":
-                    logger.debug(marker, "Message update event received");
                     dispatcher.onMessageUpdate(MessageObject.deserialize(data, MessageObject.class));
                     break;
                 case "MESSAGE_DELETE":
-                    logger.debug(marker, "Message delete event received");
                     dispatcher.onMessageDelete(MessageDeleteResponse.deserialize(data, MessageDeleteResponse.class));
                     break;
                 case "MESSAGE_DELETE_BULK":
-                    logger.debug(marker, "Message delete bulk event received");
                     dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
                     break;
                 case "PRESENCE_UPDATE":
-                    logger.debug(marker, "Presence update event received");
                     dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
                     break;
                 case "TYPING_START":
-                    logger.debug(marker, "Typing start event received");
                     dispatcher.onTypingStart(TypingStartResponse.deserialize(data, TypingStartResponse.class));
                     break;
                 case "USER_UPDATE":
-                    logger.debug(marker, "User update event received");
                     dispatcher.onUserUpdate(UserObject.deserialize(data, UserObject.class));
+                    break;
+                case "VOICE_STATE_UPDATE":
+                    // Ignored
+                    break;
+                case "VOICE_SERVER_UPDATE":
+                    // Ignored
+                    break;
                 default:
                     logger.warn(marker, "Unrecognized event received.");
                     break;

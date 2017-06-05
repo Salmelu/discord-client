@@ -8,9 +8,9 @@ public interface Server {
     String getId();
     String getName();
 
-    List<Channel> getChannels();
-    Channel getChannelById(String id);
-    Channel getChannelByName(String name);
+    List<ServerChannel> getChannels();
+    ServerChannel getChannelById(String id);
+    ServerChannel getChannelByName(String name);
 
     RoleImpl getEveryoneRole();
 

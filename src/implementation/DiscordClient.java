@@ -36,6 +36,7 @@ public class DiscordClient {
         manager.addModule(Roller.class);
         manager.addModule(CitadelWatcher.class);
         manager.addModule(InstanceTracker.class);
+        manager.addModule(Potatoer.class);
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
     }

@@ -16,4 +16,6 @@ public interface Message {
     boolean isMentionAtEveryone();
     List<User> getMentionedUsers();
     List<Role> getMentionedRoles();
+
+    void reply(String reply);
 }

@@ -1,5 +1,6 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.resources.Member;
 import cz.salmelu.discord.resources.Role;
@@ -26,6 +27,15 @@ public class MemberImpl implements Member {
         this.originalObject = object;
 
         Arrays.stream(originalObject.getRoles()).forEach(role -> roles.add(server.getRoleById(role)));
+    }
+
+    public void setNickname(String nickname) {
+        this.originalObject.setNickname(nickname);
+    }
+
+    public void setRoles(String[] roleIds) {
+        roles.clear();
+        Arrays.stream(roleIds).forEach(role -> roles.add(server.getRoleById(role)));
     }
 
     @Override
