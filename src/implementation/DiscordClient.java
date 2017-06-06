@@ -31,12 +31,16 @@ public class DiscordClient {
         context.setDispatcher(dispatcher);
         context.startNotifyManager();
 
-        manager.addModule(CopyMessage.class);
-        manager.addModule(DelayCopyMessage.class);
+        //manager.addModule(CopyMessage.class);
+        //manager.addModule(DelayCopyMessage.class);
         manager.addModule(Roller.class);
         manager.addModule(CitadelWatcher.class);
         manager.addModule(InstanceTracker.class);
         manager.addModule(Potatoer.class);
+        manager.addModule(Magnuser.class);
+        manager.addModule(ClanTop.class);
+        manager.addModule(Gainzer.class);
+        manager.addModule(Blamer.class);
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
     }

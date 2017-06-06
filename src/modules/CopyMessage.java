@@ -1,21 +1,22 @@
 package cz.salmelu.discord.modules;
 
+import cz.salmelu.discord.Emojis;
 import cz.salmelu.discord.listeners.MessageListener;
-import cz.salmelu.discord.resources.Message;
+import cz.salmelu.discord.resources.*;
 
 public class CopyMessage implements MessageListener {
     @Override
     public boolean matchMessage(Message message) {
-        return message.getRawText().startsWith("!");
+        return message.getText().trim().equals("rekt");
     }
 
     @Override
     public void onMessage(Message message) {
-        message.getChannel().sendMessage(message.getRawText());
+        message.addReaction(Emojis.SMILE);
     }
 
     @Override
     public String getName() {
-        return "copy";
+        return "???";
     }
 }

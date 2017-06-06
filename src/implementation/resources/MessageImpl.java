@@ -1,19 +1,24 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
+import cz.salmelu.discord.implementation.json.resources.UserObject;
+import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MessageImpl implements Message {
@@ -21,6 +26,7 @@ public class MessageImpl implements Message {
     private final MessageObject originalObject;
     private Channel channel;
     private final ClientImpl client;
+    private final Map<String, ReactionImpl> reactions = new HashMap<>();
 
     private final static Logger logger = LoggerFactory.getLogger(MessageImpl.class.getSimpleName());
     private final static Marker marker = MarkerFactory.getMarker("MessageImpl");
@@ -59,12 +65,31 @@ public class MessageImpl implements Message {
     }
 
     @Override
+    public String getText() {
+        String text = originalObject.getContent();
+        for (User user : getMentionedUsers()) {
+            text = text.replace(user.getMention(), "@" + user.getName());
+            if(user instanceof Member) text = text.replace(((Member) user).getMention(), "@" + ((Member) user).getNickname());
+        }
+        for (Role role : getMentionedRoles()) {
+            text = text.replace(role.getMention(), "@" + role.getName());
+        }
+        return text;
+    }
+
+    @Override
     public Channel getChannel() {
         return channel;
     }
 
     @Override
+    public Collection<Reaction> getReactions() {
+        return Collections.unmodifiableCollection(reactions.values());
+    }
+
+    @Override
     public User getAuthor() {
+        if(originalObject.getAuthor() == null) return null;
         return client.getUser(originalObject.getAuthor().getId());
     }
 
@@ -106,5 +131,104 @@ public class MessageImpl implements Message {
     @Override
     public void reply(String reply) {
         getChannel().sendMessage(reply);
+    }
+
+    @Override
+    public void addReaction(Emoji emoji) {
+        try {
+            final Channel channel = getChannel();
+            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji.getName())).findFirst().orElse(null);
+            if (!channel.isPrivate()) {
+                final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
+                if (!serverChannel.checkPermission(PermissionHelper::canAddReactions)) {
+                    throw new PermissionDeniedException("This application cannot access message history of affected channel.");
+                }
+                if (reaction == null) {
+                    if (!serverChannel.checkPermission(PermissionHelper::canAddReactions)) {
+                        throw new PermissionDeniedException("This application cannot add reactions in affected channel.");
+                    }
+                }
+            }
+            client.getRequester().putRequest(new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/" + getId()
+                    + "/reactions/" + emoji.getUnicode() + "/@me").toASCIIString());
+            if (reaction == null) {
+                reaction = new ReactionImpl(this, emoji);
+                reactions.put(emoji.getName(), reaction);
+            }
+            else {
+                reaction.increment(true);
+            }
+        }
+        catch(URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void removeReaction(Emoji emoji) {
+        try {
+            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji)).findFirst().orElse(null);
+            if(reaction == null) {
+                throw new IllegalArgumentException("This message doesn't contain that emoji.");
+            }
+            client.getRequester().deleteRequest(new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/" + getId()
+                    + "/reactions/" + emoji.getUnicode() + "/@me").toASCIIString());
+            reaction.decrement(true);
+            if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+        }
+        catch(URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public List<User> getReactions(Emoji emoji) {
+        try {
+            JSONArray rawUsers = client.getRequester().getRequestAsArray(
+                    new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/"
+                    + getId() + "/reactions/" + emoji.getUnicode()).toASCIIString());
+            List<User> userList = new ArrayList<>();
+            for (int i = 0; i < rawUsers.length(); i++) {
+                UserObject userObject = UserObject.deserialize(rawUsers.getJSONObject(i), UserObject.class);
+                User user = client.getUser(userObject.getId());
+                if(user == null) {
+                    UserImpl newUser = new UserImpl(client, userObject);
+                    client.addUser(newUser);
+                    user = newUser;
+                }
+                userList.add(user);
+            }
+            return userList;
+        }
+        catch(URISyntaxException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public ReactionImpl addReaction0(ReactionUpdateResponse reactionResponse, Emoji emoji) {
+        ReactionImpl current = reactions.get(reactionResponse.getEmoji().getName());
+        if(current == null) {
+            ReactionImpl newReaction = new ReactionImpl(client, emoji, reactionResponse, this);
+            reactions.put(newReaction.getEmoji().getName(), newReaction);
+            return newReaction;
+        }
+        else {
+            current.increment(reactionResponse.getUserId().equals(client.getMyUser().getId()));
+            return current;
+        }
+    }
+
+    public ReactionImpl removeReaction0(ReactionUpdateResponse reactionResponse, Emoji emoji) {
+        ReactionImpl current = reactions.get(reactionResponse.getEmoji().getName());
+        if(current != null) {
+            current.decrement(reactionResponse.getUserId().equals(client.getMyUser().getId()));
+            if(current.getCount() == 0) reactions.remove(current.getEmoji().getName());
+            return current;
+        }
+        else {
+            ReactionImpl removedReaction = new ReactionImpl(client, emoji, reactionResponse, this);
+            reactions.put(removedReaction.getEmoji().getName(), removedReaction);
+            return removedReaction;
+        }
     }
 }

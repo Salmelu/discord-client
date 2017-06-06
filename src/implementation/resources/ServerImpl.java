@@ -7,6 +7,7 @@ import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateRespons
 import cz.salmelu.discord.resources.*;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 public class ServerImpl implements Server {
 
@@ -86,6 +87,10 @@ public class ServerImpl implements Server {
         // adds everyone permission + user role's permissions together
         return getMe().getRoles().stream().map(role -> ((RoleImpl) (role)).getPermissions())
                 .reduce(everyoneRole.getPermissions(), (p1, p2) -> p1 | p2);
+    }
+
+    public boolean checkPermission(Predicate<Long> permissionChecker) {
+        return permissionChecker.test(getPermissions());
     }
 
     public void disable() {
@@ -197,6 +202,9 @@ public class ServerImpl implements Server {
         member.setNickname(memberObject.getNick());
         member.setRoles(memberObject.getRoles());
         ((UserImpl) member.getUser()).update(memberObject.getUser());
+        if(memberObject.getUser().getId().equals(me.getUser().getId())) {
+            channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
+        }
     }
 
     public ClientImpl getClient() {
@@ -256,6 +264,11 @@ public class ServerImpl implements Server {
     @Override
     public Member getMemberById(String id) {
         return membersById.get(id);
+    }
+
+    @Override
+    public Member getMember(User user) {
+        return membersById.get(user.getId());
     }
 
     @Override

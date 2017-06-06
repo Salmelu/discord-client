@@ -21,4 +21,5 @@ public interface Server {
     List<Member> getMembers();
     Member getMemberById(String id);
     Member getMemberByNickname(String nickname);
+    Member getMember(User user);
 }

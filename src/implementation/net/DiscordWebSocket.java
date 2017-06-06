@@ -419,6 +419,12 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 case "MESSAGE_DELETE_BULK":
                     dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
                     break;
+                case "MESSAGE_REACTION_ADD":
+                    dispatcher.onReactionAdd(ReactionUpdateResponse.deserialize(data, ReactionUpdateResponse.class));
+                    break;
+                case "MESSAGE_REACTION_REMOVE":
+                    dispatcher.onReactionRemove(ReactionUpdateResponse.deserialize(data, ReactionUpdateResponse.class));
+                    break;
                 case "PRESENCE_UPDATE":
                     dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
                     break;

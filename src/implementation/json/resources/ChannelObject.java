@@ -1,6 +1,7 @@
 package cz.salmelu.discord.implementation.json.resources;
 
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import org.json.JSONObject;
 
 public class ChannelObject extends JSONMappedObject {
     private String id;
@@ -101,5 +102,12 @@ public class ChannelObject extends JSONMappedObject {
 
     public void setUserLimit(int userLimit) {
         this.userLimit = userLimit;
+    }
+
+    public JSONObject getModifyObject() {
+        return new JSONObject()
+                .put("name", name)
+                .put("topic", topic)
+                .put("position", position);
     }
 }

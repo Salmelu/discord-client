@@ -4,21 +4,22 @@ import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
+import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONObject;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class ServerChannelImpl implements ServerChannel {
+public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     private final String id;
     private final ChannelObject originalObject;
 
     private final ServerImpl server;
-    private final ClientImpl client;
 
     private long currentPermissions;
 
@@ -39,6 +40,16 @@ public class ServerChannelImpl implements ServerChannel {
         if (!(other instanceof ServerChannelImpl))return false;
         ServerChannelImpl otherCast = (ServerChannelImpl) other;
         return otherCast.getId().equals(getId());
+    }
+
+    @Override
+    public ServerChannel toServerChannel() {
+        return this;
+    }
+
+    @Override
+    public PrivateChannel toPrivateChannel() {
+        return null;
     }
 
     // called when server becomes unavailable... prevents doing any actions with it
@@ -105,7 +116,7 @@ public class ServerChannelImpl implements ServerChannel {
         currentPermissions = permissions[0];
     }
 
-    private boolean checkPermission(Predicate<Long> permissionChecker) {
+    public boolean checkPermission(Predicate<Long> permissionChecker) {
         return permissionChecker.test(currentPermissions);
     }
 
@@ -120,8 +131,51 @@ public class ServerChannelImpl implements ServerChannel {
     }
 
     @Override
+    public String getTopic() {
+        return originalObject.getTopic();
+    }
+
+    @Override
+    public int getPosition() {
+        return originalObject.getPosition();
+    }
+
+    @Override
     public Server getServer() {
         return server;
+    }
+
+    @Override
+    public void changeName(String newName) {
+        editChannel(newName, getTopic(), getPosition());
+    }
+
+    @Override
+    public void changeTopic(String newTopic) {
+        editChannel(getName(), newTopic, getPosition());
+
+    }
+
+    @Override
+    public void changePosition(int newPosition) {
+        editChannel(getName(), getTopic(), newPosition);
+    }
+
+    @Override
+    public void editChannel(String newName, String newTopic, int newPosition) {
+        if(!checkPermission(PermissionHelper::canManageChannels)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to edit this channel.");
+        }
+        if(newName.length() < 2 || newName.length() > 100) {
+            throw new IllegalArgumentException("The channel name must be between 2 and 100 characters long.");
+        }
+        if(newTopic.length() > 1024) {
+            throw new IllegalArgumentException("Topic can't be longer than 1024 characters.");
+        }
+        originalObject.setName(newName);
+        originalObject.setTopic(newTopic);
+        originalObject.setPosition(newPosition);
+        client.getRequester().patchRequest(Endpoint.CHANNEL + "/" + getId(), originalObject.getModifyObject());
     }
 
     @Override
@@ -150,12 +204,10 @@ public class ServerChannelImpl implements ServerChannel {
     }
 
     @Override
-    public ServerChannel toServerChannel() {
-        return this;
-    }
-
-    @Override
-    public PrivateChannel toPrivateChannel() {
-        return null;
+    public Message getMessage(String id) throws PermissionDeniedException {
+        if(!checkPermission(PermissionHelper::canReadMessageHistory)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to read message history in this channel.");
+        }
+        return super.getMessage(id);
     }
 }

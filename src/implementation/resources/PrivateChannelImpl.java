@@ -5,11 +5,10 @@ import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.*;
 
-public class PrivateChannelImpl implements PrivateChannel {
+public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
 
     private final String id;
     private final PrivateChannelObject originalObject;
-    private final ClientImpl client;
     private final User user;
 
     public PrivateChannelImpl(ClientImpl client, PrivateChannelObject channelObject, User user) {

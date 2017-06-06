@@ -90,7 +90,8 @@ public class RateLimiter {
                 return 0;
             }
             else {
-                return pair.reset - System.currentTimeMillis();
+                final long reset = pair.reset - System.currentTimeMillis();
+                return reset < 0 ? 0 : reset;
             }
         }
         return 0;

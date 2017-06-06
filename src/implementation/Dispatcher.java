@@ -1,5 +1,6 @@
 package cz.salmelu.discord.implementation;
 
+import cz.salmelu.discord.Emojis;
 import cz.salmelu.discord.NotifyManager;
 import cz.salmelu.discord.implementation.events.PresenceUpdateImpl;
 import cz.salmelu.discord.implementation.events.TypingStartedImpl;
@@ -311,6 +312,7 @@ public class Dispatcher {
 
     public synchronized void onMessage(MessageObject messageObject) {
         final MessageImpl message = new MessageImpl(client, messageObject);
+        ((ChannelBase) message.getChannel()).cacheMessage(message);
         if(ignoreBotMessages && messageObject.getAuthor().isBot()) {
             logger.debug(marker, "Skipping a bot message.");
             return;
@@ -348,5 +350,35 @@ public class Dispatcher {
                 .findFirst();
 
         foundListener.ifPresent(listener -> Wrapper.wrap(listener::onMessage, message));
+    }
+
+    public void onReactionAdd(ReactionUpdateResponse reactionObject) {
+        final ChannelBase channel = (ChannelBase) client.getChannelById(reactionObject.getChannelId());
+        if(channel == null) {
+            // Not a tracked channel, message not tracked either
+            return;
+        }
+        Emoji emoji = Emojis.getByUnicode(reactionObject.getEmoji().getName());
+        if(emoji == null) {
+            logger.debug(marker, "Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
+            return;
+        }
+        channel.addReaction(reactionObject, emoji);
+        // TODO: fire onReactionRemove
+    }
+
+    public void onReactionRemove(ReactionUpdateResponse reactionObject) {
+        final ChannelBase channel = (ChannelBase) client.getChannelById(reactionObject.getChannelId());
+        if(channel == null) {
+            // Not a tracked channel, message not tracked either
+            return;
+        }
+        Emoji emoji = Emojis.getByUnicode(reactionObject.getEmoji().getName());
+        if(emoji == null) {
+            logger.debug(marker, "Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
+            return;
+        }
+        channel.removeReaction(reactionObject, emoji);
+        // TODO: fire onReactionAdd
     }
 }

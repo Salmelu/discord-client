@@ -7,6 +7,7 @@ import com.mashape.unirest.request.GetRequest;
 import com.mashape.unirest.request.HttpRequest;
 import com.mashape.unirest.request.HttpRequestWithBody;
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,18 +33,6 @@ public class DiscordHttpRequester {
 
     public void stop() {
         this.stopped = true;
-    }
-
-    public HttpResponse<String> getRequestImpl(String endpoint) {
-        GetRequest request = Unirest.get(endpoint);
-        fillHeaders(request);
-        try {
-            return request.asString();
-        }
-        catch (UnirestException e) {
-            logger.warn(marker, "Couldn't send an object to discord servers.", e);
-        }
-        return null;
     }
 
     private void waitForLimit(String endpoint) {
@@ -101,28 +90,86 @@ public class DiscordHttpRequester {
         }
     }
 
-    public synchronized void getRequest(String endpoint) {
-        if(stopped) return;
-        waitForLimit(endpoint);
-        logger.debug(marker, "Sending GET request to " + endpoint);
-        HttpResponse<String> response = getRequestImpl(endpoint);
-        processHttpResponse(response);
-        updateLimit(endpoint, response);
-    }
-
-    public synchronized JSONObject getRequestAsObject(String endpoint) {
+    private HttpResponse<String> getRequestImpl(String endpoint) {
         if(stopped) return null;
         waitForLimit(endpoint);
         logger.debug(marker, "Sending GET request to " + endpoint);
+
+        GetRequest request = Unirest.get(endpoint);
+        fillHeaders(request);
+        HttpResponse<String> response = null;
+        try {
+            response = request.asString();
+            processHttpResponse(response);
+        }
+        catch (UnirestException e) {
+            logger.warn(marker, "Couldn't send an object to discord servers.", e);
+            return null;
+        }
+        finally {
+            updateLimit(endpoint, response);
+        }
+        return response;
+    }
+
+    private void fireRequestImpl(String endpoint, HttpRequest request) {
+        try {
+            HttpResponse<String> response = request.asString();
+            processHttpResponse(response);
+            updateLimit(endpoint, response);
+        }
+        catch (UnirestException e) {
+            logger.warn(marker, "Couldn't send an object to discord servers.", e);
+        }
+    }
+
+    public synchronized void getRequest(String endpoint) {
+        getRequestImpl(endpoint);
+    }
+
+    public synchronized JSONObject getRequestAsObject(String endpoint) {
         HttpResponse<String> response = getRequestImpl(endpoint);
-        processHttpResponse(response);
-        updateLimit(endpoint, response);
+        if(response == null) return null;
         return new JSONObject(response.getBody());
+    }
+
+    public synchronized JSONArray getRequestAsArray(String endpoint) {
+        HttpResponse<String> response = getRequestImpl(endpoint);
+        if(response == null) return null;
+        return new JSONArray(response.getBody());
     }
 
     public synchronized void postRequest(String endpoint) {
         if(stopped) return;
 
+    }
+
+    public synchronized void patchRequest(String endpoint, JSONObject object) {
+        if(stopped) return;
+        waitForLimit(endpoint);
+        logger.debug(marker, "Sending PATCH request to " + endpoint);
+        HttpRequestWithBody request = Unirest.patch(endpoint);
+        fillHeaders(request);
+        request.body(object);
+        fireRequestImpl(endpoint, request);
+    }
+
+    public synchronized void putRequest(String endpoint) {
+        if(stopped) return;
+        waitForLimit(endpoint);
+        logger.debug(marker, "Sending PUT request to " + endpoint);
+        HttpRequestWithBody request = Unirest.put(endpoint);
+        fillHeaders(request);
+        fireRequestImpl(endpoint, request);
+    }
+
+    public synchronized void deleteRequest(String endpoint) {
+        if(stopped) return;
+        waitForLimit(endpoint);
+        logger.debug(marker, "Sending DELETE request to " + endpoint);
+        HttpRequestWithBody request = Unirest.delete(endpoint);
+        fillHeaders(request);
+        fireRequestImpl(endpoint, request);
     }
 
     public synchronized void postRequest(String endpoint, JSONObject object) {
@@ -132,15 +179,7 @@ public class DiscordHttpRequester {
         HttpRequestWithBody request = Unirest.post(endpoint);
         fillHeaders(request);
         request.body(object);
-        try {
-            HttpResponse<String> response = request.asString();
-            processHttpResponse(response);
-            updateLimit(endpoint, response);
-        }
-        catch (UnirestException e) {
-            logger.warn(marker, "Couldn't send an object to discord servers.", e);
-        }
-
+        fireRequestImpl(endpoint, request);
     }
 
     public synchronized void postRequest(String endpoint, JSONMappedObject object) {
