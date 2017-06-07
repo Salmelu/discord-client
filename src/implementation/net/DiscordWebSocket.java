@@ -42,6 +42,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
     private Dispatcher dispatcher;
     private RateLimiter limiter;
 
+    private long failedTries = 0;
+    private long lastFailedTry = 0;
+
     private URI uri;
     private int sequenceNumber = -1;
     private String sessionId = null;
@@ -206,6 +209,23 @@ public class DiscordWebSocket extends WebSocketAdapter {
     @Override
     public void onWebSocketClose(int code, String reason) {
         this.state = DiscordWebSocketState.DISCONNECTED;
+
+        if(System.currentTimeMillis() - lastFailedTry > 60 * 1000) {
+            // more than a minute ago, reset
+            failedTries = 1;
+        }
+        else {
+            ++failedTries;
+        }
+        lastFailedTry = System.currentTimeMillis();
+        if(failedTries >= 10) {
+            // Too many fails, sorry, but we can't spam websocket that much, good bye
+            this.state = DiscordWebSocketState.DEAD;
+            logger.error(marker, "Connection was closed, code = " + code + ", message = " + reason);
+            logger.error(marker, "This was tenth failure in a row, aborting websocket attempts. Goodbye.");
+            throw new Error("Websocket kept failing to connect, aborting.");
+        }
+
         heartbeatGenerator.pause();
         if(code == 1000) {
             logger.debug(marker, "Connection was closed gracefully, code = " + code + ", message = " + reason);

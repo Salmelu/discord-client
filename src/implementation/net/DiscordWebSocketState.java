@@ -4,6 +4,7 @@ public enum DiscordWebSocketState {
     CREATED,
     INITIALIZED,
     DISCONNECTED,
+    DEAD,
     CONNECTING,
     READY,
     RECONNECTING,

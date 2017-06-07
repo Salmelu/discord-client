@@ -11,4 +11,8 @@ public interface Initializer {
     default void onServerDetected(Server server) {
 
     }
+
+    default void onServerDelete(Server server) {
+
+    }
 }

@@ -82,6 +82,9 @@ public class ClientImpl implements Client {
     }
 
     public DiscordHttpRequester getRequester() {
+        if(socket != null && socket.getState().equals(DiscordWebSocketState.DEAD)) {
+            throw new Error("Websocket died completely, killing this thread too.");
+        }
         return requester;
     }
 

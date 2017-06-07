@@ -41,6 +41,9 @@ public class DiscordClient {
         manager.addModule(ClanTop.class);
         manager.addModule(Gainzer.class);
         manager.addModule(Blamer.class);
+        manager.addModule(Jaimer.class);
+        manager.addModule(Saurer.class);
+        manager.addModule(Raids.class);
 
         Runtime.getRuntime().addShutdownHook(new ShutdownHook());
     }

@@ -149,7 +149,7 @@ public class Dispatcher {
         final ServerImpl server = (ServerImpl) client.getServerById(id);
         if(server != null) {
             server.disable();
-            moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onServerDelete, server));
+            moduleManager.getInitializers().forEach(listener -> Wrapper.wrap(listener::onServerDelete, server));
             client.clearServer(server);
         }
     }
