@@ -9,7 +9,11 @@ public interface Member {
     User getUser();
     String getNickname();
     List<Role> getRoles();
+
+
     String getMention();
+
+    Server getServer();
 
     void addRole(Role role) throws PermissionDeniedException;
     void removeRole(Role role) throws PermissionDeniedException;

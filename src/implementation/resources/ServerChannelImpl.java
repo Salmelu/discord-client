@@ -1,17 +1,12 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.PermissionDeniedException;
-import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
-import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.*;
-import org.json.JSONObject;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Predicate;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ServerChannelImpl extends ChannelBase implements ServerChannel {
@@ -21,7 +16,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     private final ServerImpl server;
 
-    private long currentPermissions;
+    private Set<Permission> currentPermissions;
 
     public ServerChannelImpl(ClientImpl client, ServerImpl server, ChannelObject channelObject) {
         this.id = channelObject.getId();
@@ -54,7 +49,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     // called when server becomes unavailable... prevents doing any actions with it
     public void resetPermissions() {
-        currentPermissions = 0;
+        currentPermissions = EnumSet.noneOf(Permission.class);
     }
 
     public void update(ChannelObject channelObject) {
@@ -79,11 +74,11 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
      */
     public void calculatePermissions() {
         if(originalObject.getPermissionOverwrites().length == 0) {
-            currentPermissions = server.getPermissions();
+            currentPermissions = EnumSet.copyOf(server.getPermissions());
             return;
         }
 
-        final long[] permissions = {server.getPermissions(), 0, 0, 0, 0, 0, 0};
+        final long[] permissionValues = {0, 0, 0, 0, 0, 0};
         final RoleImpl everyoneRole = server.getEveryoneRole();
         final MemberImpl me = server.getMe();
         final List<String> roleIds = me.getRoles().stream().map(Role::getId).collect(Collectors.toList());
@@ -91,33 +86,34 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         Arrays.stream(originalObject.getPermissionOverwrites()).forEach(overwriteObject -> {
             if(overwriteObject.getType().equals(PermissionOverwriteType.ROLE)) {
                 if(overwriteObject.getId().equals(everyoneRole.getId())) {
-                    permissions[1] = overwriteObject.getDeny();
-                    permissions[2] = overwriteObject.getAllow();
+                    permissionValues[0] = overwriteObject.getDeny();
+                    permissionValues[1] = overwriteObject.getAllow();
                 }
                 else if(roleIds.contains(overwriteObject.getId())) {
-                    permissions[3] |= overwriteObject.getDeny();
-                    permissions[4] |= overwriteObject.getAllow();
+                    permissionValues[2] |= overwriteObject.getDeny();
+                    permissionValues[3] |= overwriteObject.getAllow();
                 }
             }
             else if(overwriteObject.getType().equals(PermissionOverwriteType.MEMBER)
                     && me.getId().equals(overwriteObject.getId())) {
-                permissions[5] = overwriteObject.getDeny();
-                permissions[6] = overwriteObject.getAllow();
+                permissionValues[4] = overwriteObject.getDeny();
+                permissionValues[5] = overwriteObject.getAllow();
             }
         });
 
-        permissions[0] &= ~permissions[1];
-        permissions[0] |= permissions[2];
-        permissions[0] &= ~permissions[3];
-        permissions[0] |= permissions[4];
-        permissions[0] &= ~permissions[5];
-        permissions[0] |= permissions[6];
+        EnumSet<Permission> permissions = EnumSet.copyOf(server.getPermissions());
+        permissions.removeAll(Permission.getPermissions(permissionValues[0]));
+        permissions.addAll(Permission.getPermissions(permissionValues[1]));
+        permissions.removeAll(Permission.getPermissions(permissionValues[2]));
+        permissions.addAll(Permission.getPermissions(permissionValues[3]));
+        permissions.removeAll(Permission.getPermissions(permissionValues[4]));
+        permissions.addAll(Permission.getPermissions(permissionValues[5]));
 
-        currentPermissions = permissions[0];
+        currentPermissions = Collections.unmodifiableSet(permissions);
     }
 
-    public boolean checkPermission(Predicate<Long> permissionChecker) {
-        return permissionChecker.test(currentPermissions);
+    public boolean checkPermission(Permission permission) {
+        return currentPermissions.contains(permission);
     }
 
     @Override
@@ -163,7 +159,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public void editChannel(String newName, String newTopic, int newPosition) {
-        if(!checkPermission(PermissionHelper::canManageChannels)) {
+        if(!checkPermission(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application doesn't have the permission to edit this channel.");
         }
         if(newName.length() < 2 || newName.length() > 100) {
@@ -190,7 +186,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public boolean canSendMessage() {
-        return checkPermission(PermissionHelper::canSendMessages);
+        return checkPermission(Permission.SEND_MESSAGES);
     }
 
     @Override
@@ -205,7 +201,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public Message getMessage(String id) throws PermissionDeniedException {
-        if(!checkPermission(PermissionHelper::canReadMessageHistory)) {
+        if(!checkPermission(Permission.READ_MESSAGE_HISTORY)) {
             throw new PermissionDeniedException("This application doesn't have the permission to read message history in this channel.");
         }
         return super.getMessage(id);

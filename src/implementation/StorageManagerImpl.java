@@ -18,11 +18,26 @@ public class StorageManagerImpl implements StorageManager {
     private final HashMap<Class<?>, HashMap<String, StorageImpl>> storageMap = new HashMap<>();
     private static final String storagePath = "storage/";
 
+    private final Thread savingThread;
+    private static final int SLEEP_TIME = 5 * 60 * 1000;
+    private boolean savingRunning;
+
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
-    private final Marker marker = MarkerFactory.getMarker("StorageManager");
 
     public StorageManagerImpl() {
+        savingThread = new Thread(() -> {
+            while(savingRunning) {
+                saveAll();
+                try {
+                    Thread.sleep(SLEEP_TIME);
+                }
+                catch (InterruptedException ignored) {
 
+                }
+            }
+        });
+        savingRunning = true;
+        savingThread.start();
     }
 
     @Override
@@ -51,23 +66,23 @@ public class StorageManagerImpl implements StorageManager {
             oos.writeObject(map);
         }
         catch(IOException e) {
-            logger.warn(marker, "Failed saving storage of class " + clazz.getName(), e);
+            logger.warn("Failed saving storage of class " + clazz.getName(), e);
         }
     }
 
     public synchronized void saveAll() {
-        logger.info(marker, "Saving all storages...");
+        logger.info( "Saving all storages...");
         for (Map.Entry<Class<?>, HashMap<String, StorageImpl>> classEntry : storageMap.entrySet()) {
             save(classEntry.getKey());
         }
-        logger.info(marker, "Done.");
+        logger.info( "Done.");
     }
 
     @SuppressWarnings("unchecked")
     private boolean load(Class<?> clazz) {
         final String filename = storagePath + clazz.getName();
         if(!Files.exists(Paths.get(filename))) {
-            logger.info(marker, "Storage file of " + clazz.getName() + " not found.");
+            logger.info("Storage file of " + clazz.getName() + " not found.");
             return false;
         }
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
@@ -79,11 +94,22 @@ public class StorageManagerImpl implements StorageManager {
             return true;
         }
         catch(IOException e) {
-            logger.warn(marker, "Failed loading storage of class " + clazz.getName(), e);
+            logger.warn("Failed loading storage of class " + clazz.getName(), e);
         }
         catch (ClassNotFoundException e) {
-            logger.error(marker, "Exception when loading a class.", e);
+            logger.error("Exception when loading a class.", e);
         }
         return false;
+    }
+
+    public void stop() {
+        savingRunning = false;
+        savingThread.interrupt();
+        try {
+            savingThread.join();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 }

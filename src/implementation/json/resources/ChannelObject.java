@@ -7,7 +7,7 @@ public class ChannelObject extends JSONMappedObject {
     private String id;
     private String guildId;
     private String name;
-    private ChannelTypeObject type;
+    private ChannelType type;
     private int position;
     private boolean isPrivate;
     private PermissionOverwriteObject[] permissionOverwrites;
@@ -40,11 +40,11 @@ public class ChannelObject extends JSONMappedObject {
         this.name = name;
     }
 
-    public ChannelTypeObject getType() {
+    public ChannelType getType() {
         return type;
     }
 
-    public void setType(ChannelTypeObject type) {
+    public void setType(ChannelType type) {
         this.type = type;
     }
 

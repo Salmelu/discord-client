@@ -1,9 +1,7 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.resources.Channel;
 import cz.salmelu.discord.resources.DeletedMessage;
-import cz.salmelu.discord.resources.Message;
 
 public class DeletedMessageImpl implements DeletedMessage {
 

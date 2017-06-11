@@ -24,7 +24,9 @@ public interface Channel {
     default List<Message> getMessagesAfter(Message message, int limit) throws PermissionDeniedException {
         return getMessagesAfter(message.getId(), limit);
     }
+    void triggerTyping();
 
     ServerChannel toServerChannel();
     PrivateChannel toPrivateChannel();
+
 }

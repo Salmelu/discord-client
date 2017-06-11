@@ -24,7 +24,6 @@ public class DiscordHttpRequester {
     private boolean stopped = false;
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
-    private final Marker marker = MarkerFactory.getMarker("HttpRequester");
 
     public DiscordHttpRequester(String token, RateLimiter limiter) {
         this.token = token;
@@ -38,7 +37,7 @@ public class DiscordHttpRequester {
     private void waitForLimit(String endpoint) {
         long waitFor = limiter.checkLimit(endpoint);
         while(waitFor != 0) {
-            logger.warn(marker, "Request to endpoint " + endpoint + " is being rate limited, " +
+            logger.info("Request to endpoint " + endpoint + " is being rate limited, " +
                     "waiting for " + waitFor + " milliseconds.");
             try {
                 Thread.sleep(waitFor);
@@ -79,13 +78,13 @@ public class DiscordHttpRequester {
             case 304: // Not modified
                 if(response.getHeaders().getFirst("Content-Type").equals("application/json")) {
                     JSONObject object = new JSONObject(response.getBody());
-                    logger.warn(marker, object.getString("message"));
+                    logger.warn(object.getString("message"));
                     throw new DiscordRequestException(object.getString("message"), 304);
                 }
                 throw new DiscordRequestException("Unknown error has happened.", 304);
             default:
                 // error, report it
-                logger.error(marker, "HTTP request returned error code " + response.getStatus());
+                logger.error("HTTP request returned error code " + response.getStatus());
                 throw new DiscordRequestException("Unknown error has happened.", response.getStatus());
         }
     }
@@ -93,7 +92,7 @@ public class DiscordHttpRequester {
     private HttpResponse<String> getRequestImpl(String endpoint) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug(marker, "Sending GET request to " + endpoint);
+        logger.debug("Sending GET request to " + endpoint);
 
         GetRequest request = Unirest.get(endpoint);
         fillHeaders(request);
@@ -103,7 +102,7 @@ public class DiscordHttpRequester {
             processHttpResponse(response);
         }
         catch (UnirestException e) {
-            logger.warn(marker, "Couldn't send an object to discord servers.", e);
+            logger.warn("Couldn't send an object to discord servers.", e);
             return null;
         }
         finally {
@@ -119,7 +118,7 @@ public class DiscordHttpRequester {
             updateLimit(endpoint, response);
         }
         catch (UnirestException e) {
-            logger.warn(marker, "Couldn't send an object to discord servers.", e);
+            logger.warn("Couldn't send an object to discord servers.", e);
         }
     }
 
@@ -141,13 +140,17 @@ public class DiscordHttpRequester {
 
     public synchronized void postRequest(String endpoint) {
         if(stopped) return;
-
+        waitForLimit(endpoint);
+        logger.debug("Sending empty POST request to " + endpoint);
+        HttpRequestWithBody request = Unirest.post(endpoint);
+        fillHeaders(request);
+        fireRequestImpl(endpoint, request);
     }
 
     public synchronized void patchRequest(String endpoint, JSONObject object) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug(marker, "Sending PATCH request to " + endpoint);
+        logger.debug("Sending PATCH request to " + endpoint);
         HttpRequestWithBody request = Unirest.patch(endpoint);
         fillHeaders(request);
         request.body(object);
@@ -157,7 +160,7 @@ public class DiscordHttpRequester {
     public synchronized void putRequest(String endpoint) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug(marker, "Sending PUT request to " + endpoint);
+        logger.debug("Sending PUT request to " + endpoint);
         HttpRequestWithBody request = Unirest.put(endpoint);
         fillHeaders(request);
         fireRequestImpl(endpoint, request);
@@ -166,7 +169,7 @@ public class DiscordHttpRequester {
     public synchronized void deleteRequest(String endpoint) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug(marker, "Sending DELETE request to " + endpoint);
+        logger.debug("Sending DELETE request to " + endpoint);
         HttpRequestWithBody request = Unirest.delete(endpoint);
         fillHeaders(request);
         fireRequestImpl(endpoint, request);
@@ -175,7 +178,7 @@ public class DiscordHttpRequester {
     public synchronized void postRequest(String endpoint, JSONObject object) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug(marker, "Sending POST request to " + endpoint + ": " + object.toString());
+        logger.debug("Sending POST request to " + endpoint + ": " + object.toString());
         HttpRequestWithBody request = Unirest.post(endpoint);
         fillHeaders(request);
         request.body(object);

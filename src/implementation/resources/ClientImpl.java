@@ -173,5 +173,4 @@ public class ClientImpl implements Client {
     public synchronized Channel getChannelByName(String name) {
         return channelsByName.get(name);
     }
-
 }

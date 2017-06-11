@@ -5,6 +5,8 @@ import cz.salmelu.discord.Storage;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 
 public class StorageImpl implements Storage, Serializable {
     private transient Map<String, Object> storedObjects = new HashMap<>();
@@ -29,6 +31,11 @@ public class StorageImpl implements Storage, Serializable {
     @Override
     public synchronized <T extends Serializable> void setValue(String name, T value) {
         storedObjects.put(name, value);
+    }
+
+    @Override
+    public synchronized void removeValue(String name) {
+        storedObjects.remove(name);
     }
 
     synchronized void save() {

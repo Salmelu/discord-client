@@ -1,11 +1,11 @@
 package cz.salmelu.discord.implementation.json.response;
 
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
-import cz.salmelu.discord.resources.User;
+import cz.salmelu.discord.implementation.json.resources.UserObject;
 
 public class ServerMemberRemoveResponse extends JSONMappedObject {
     private String guildId;
-    private User user;
+    private UserObject user;
 
     public String getGuildId() {
         return guildId;
@@ -15,11 +15,11 @@ public class ServerMemberRemoveResponse extends JSONMappedObject {
         this.guildId = guildId;
     }
 
-    public User getUser() {
+    public UserObject getUser() {
         return user;
     }
 
-    public void setUser(User user) {
+    public void setUser(UserObject user) {
         this.user = user;
     }
 }

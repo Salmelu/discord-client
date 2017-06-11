@@ -55,7 +55,6 @@ public class NotifyManagerImpl implements NotifyManager {
     private final Lock queueLock;
 
     private static final Logger logger = LoggerFactory.getLogger(NotifyManagerImpl.class.getSimpleName());
-    private static final Marker marker = MarkerFactory.getMarker("NotifyManager");
 
     private final PriorityQueue<Notification> notificationQueue =
             new PriorityQueue<>((n1, n2) -> {
@@ -89,7 +88,7 @@ public class NotifyManagerImpl implements NotifyManager {
                 notifierThread.join();
             }
             catch(InterruptedException e) {
-                logger.warn(marker, "Interrupted notifier joining.");
+                logger.warn("Interrupted notifier joining.");
             }
         }
     }
@@ -168,7 +167,7 @@ public class NotifyManagerImpl implements NotifyManager {
                 queueCondition.await(sleepTime, TimeUnit.MILLISECONDS);
             }
             catch (InterruptedException e) {
-                logger.debug(marker, "Interrupted notifier waiting.");
+                logger.debug("Interrupted notifier waiting.");
             }
             finally {
                 queueLock.unlock();

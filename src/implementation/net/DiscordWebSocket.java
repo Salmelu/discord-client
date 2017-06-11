@@ -37,7 +37,6 @@ public class DiscordWebSocket extends WebSocketAdapter {
     private Thread heartbeatThread = null;
 
     private Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
-    private Marker marker = MarkerFactory.getMarker("WebSocket");
     private DiscordWebSocketState state = DiscordWebSocketState.CREATED;
     private Dispatcher dispatcher;
     private RateLimiter limiter;
@@ -59,10 +58,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     public void connect(URI uri) {
         if(this.state != DiscordWebSocketState.INITIALIZED) {
-            logger.error(marker, "Cannot connect to websocket without initializing properly.");
+            logger.error("Cannot connect to websocket without initializing properly.");
             throw new Error("Cannot connect to websocket without initializing properly.");
         }
-        state = DiscordWebSocketState.CONNECTING;
         this.uri = uri;
         this.client = new WebSocketClient(new SslContextFactory());
         this.client.setDaemon(true);
@@ -73,16 +71,25 @@ public class DiscordWebSocket extends WebSocketAdapter {
             this.client.start();
         }
         catch (Exception e) {
-            logger.error(marker, "Unable to start websocket client.", e);
+            logger.error("Unable to start websocket client.", e);
         }
         connect();
     }
 
-    private void connect() {
-        if(state == DiscordWebSocketState.READY) {
-            logger.warn(marker, "Connecting when the websocket is ready makes no sense.");
+    private synchronized void connect() {
+        if(state == DiscordWebSocketState.READY ||
+                state == DiscordWebSocketState.CONNECTING ||
+                state == DiscordWebSocketState.RECONNECTING) {
+            logger.warn("Connecting when the websocket is ready makes no sense.");
             return;
         }
+        if(sessionId != null) {
+            this.state = DiscordWebSocketState.RECONNECTING;
+        }
+        else {
+            this.state = DiscordWebSocketState.CONNECTING;
+        }
+
         try {
             if (session != null) {
                 session.close();
@@ -91,36 +98,36 @@ public class DiscordWebSocket extends WebSocketAdapter {
             ClientUpgradeRequest request = new ClientUpgradeRequest();
             request.setRequestURI(uri);
             client.connect(this, uri, request);
-            logger.debug(marker, "Requested connection to socket at uri " + uri.toString() + ".");
+            logger.debug("Requested connection to socket at uri " + uri.toString() + ".");
         }
         catch (Exception e) {
-            logger.error(marker, "Couldn't open connection to socket.", e);
+            logger.error("Couldn't open connection to socket.", e);
         }
     }
 
     public void disconnect() {
         if(state != DiscordWebSocketState.READY) {
-            logger.warn(marker, "Attempting to disconnect not working websocket.");
+            logger.warn("Attempting to disconnect not working websocket.");
             return;
         }
         state = DiscordWebSocketState.DISCONNECTING;
-        logger.info(marker, "Disconnecting from websocket.");
+        logger.info("Disconnecting from websocket.");
         if(heartbeatThread != null) {
-            logger.info(marker, "Stopping heartbeat generator.");
+            logger.info("Stopping heartbeat generator.");
             heartbeatGenerator.stop();
             heartbeatThread.interrupt();
             try {
                 heartbeatThread.join();
             }
             catch (InterruptedException e) {
-                logger.warn(marker, "Interrupted while waiting for heartbeat thread.");
+                logger.warn("Interrupted while waiting for heartbeat thread.");
             }
             heartbeatThread = null;
         }
         if(session != null) {
             session.close(1000, "Gracefully ending.");
         }
-        logger.info(marker, "Closed connection to socket.");
+        logger.info("Closed connection to socket.");
     }
 
     public DiscordWebSocketState getState() {
@@ -135,7 +142,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         if(op == DiscordSocketMessage.STATUS_UPDATE) {
             long wait = limiter.checkGameUpdateLimit();
             while(wait > 0) {
-                logger.warn(marker, "Request to status update is being rate limited, " +
+                logger.warn("Request to status update is being rate limited, " +
                         "waiting for " + wait + " milliseconds.");
                 try {
                     Thread.sleep(wait);
@@ -158,7 +165,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     public synchronized void sendMessage(String message) {
         if(state != DiscordWebSocketState.READY) {
-            logger.warn(marker, "Cannot send messages when the connection is not ready, skipping.");
+            logger.warn("Cannot send messages when the connection is not ready, skipping.");
             return;
         }
         sendMessage0(message);
@@ -166,15 +173,15 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     private synchronized void sendMessage0(String message) {
         if(session == null || !session.isOpen()) {
-            logger.warn(marker, "No opened connection to socket.");
+            logger.warn("No opened connection to socket.");
             return;
         }
-        logger.debug(marker, "Sending message " + message.replace(token, "TOKEN"));
+        logger.debug("Sending message " + message.replace(token, "TOKEN"));
 
         // Block until the gateway is ready to get new request
         long wait = limiter.checkGatewayLimit();
         while(wait > 0) {
-            logger.warn(marker, "Request to status update is being rate limited, " +
+            logger.warn("Request to status update is being rate limited, " +
                     "waiting for " + wait + " milliseconds.");
             try {
                 Thread.sleep(wait);
@@ -190,19 +197,18 @@ public class DiscordWebSocket extends WebSocketAdapter {
             session.getRemote().sendString(message);
         }
         catch (Exception e) {
-            logger.warn(marker, "Sending message failed with an exception.", e);
+            logger.warn("Sending message failed with an exception.", e);
         }
     }
 
     @Override
     public void onWebSocketError(Throwable cause) {
-        logger.error(marker, "Websocket threw an error: " + cause.getMessage());
-        cause.printStackTrace();
+        logger.error("Websocket threw an error: " + cause.getMessage(), cause);
     }
 
     @Override
     public void onWebSocketConnect(Session session) {
-        logger.debug(marker, "Connection was successfully opened.");
+        logger.info("Connection to discord gateway was successfully opened.");
         this.session = session;
     }
 
@@ -210,6 +216,8 @@ public class DiscordWebSocket extends WebSocketAdapter {
     public void onWebSocketClose(int code, String reason) {
         this.state = DiscordWebSocketState.DISCONNECTED;
 
+        // A mechanism to just kill the client, if it's failing too often.
+        // Spamming websocket too much means risking a ban.
         if(System.currentTimeMillis() - lastFailedTry > 60 * 1000) {
             // more than a minute ago, reset
             failedTries = 1;
@@ -221,18 +229,17 @@ public class DiscordWebSocket extends WebSocketAdapter {
         if(failedTries >= 10) {
             // Too many fails, sorry, but we can't spam websocket that much, good bye
             this.state = DiscordWebSocketState.DEAD;
-            logger.error(marker, "Connection was closed, code = " + code + ", message = " + reason);
-            logger.error(marker, "This was tenth failure in a row, aborting websocket attempts. Goodbye.");
+            logger.error("Connection was closed, code = " + code + ", message = " + reason);
+            logger.error("This was tenth failure in a row, aborting websocket attempts. Goodbye.");
             throw new Error("Websocket kept failing to connect, aborting.");
         }
 
         heartbeatGenerator.pause();
         if(code == 1000) {
-            logger.debug(marker, "Connection was closed gracefully, code = " + code + ", message = " + reason);
+            logger.info("Connection was closed gracefully, code = " + code + ", message = " + reason);
         }
         else {
-            logger.warn(marker, "Connection was closed, code = " + code + ", message = " + reason);
-            if(sessionId != null) this.state = DiscordWebSocketState.RECONNECTING;
+            logger.warn("Connection was closed, code = " + code + ", message = " + reason);
             connect();
         }
     }
@@ -240,7 +247,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
     @Override
     public void onWebSocketText(String s) {
         try {
-            logger.debug(marker, "Received a message: " + s);
+            logger.debug("Received a message: " + s);
             JSONObject message = new JSONObject(s);
             int op = message.getInt("op");
 
@@ -259,28 +266,28 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 case DiscordSocketMessage.HELLO:
                     final HelloEvent event = JSONMappedObject.deserialize(message.getJSONObject("d"), HelloEvent.class);
                     heartbeatGenerator.setInterval(event.getHeartbeatInterval());
-                    heartbeatGenerator.resume();
+                    heartbeatGenerator.resume(true);
                     if (state == DiscordWebSocketState.RECONNECTING) resume();
                     else identify();
                     break;
                 case DiscordSocketMessage.RECONNECT:
-                    state = DiscordWebSocketState.RECONNECTING;
+                    state = DiscordWebSocketState.DISCONNECTED;
                     connect();
                     break;
                 case DiscordSocketMessage.INVALID_SESSION:
-                    logger.warn(marker, "Invalid session event received.");
+                    logger.warn("Invalid session event received.");
                     final boolean resumable = message.getBoolean("d");
                     try {
                         Thread.sleep(3500);
                     }
                     catch(InterruptedException e) {
-                        logger.warn(marker, "Interrupted", e);
+                        logger.warn("Interrupted", e);
                     }
                     if(resumable) resume();
                     else identify();
                     break;
                 default:
-                    logger.warn(marker, "Invalid message type received.");
+                    logger.warn("Invalid message type received.");
             }
         }
         catch(Exception e) {
@@ -351,12 +358,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     public void timeout() {
         if(state != DiscordWebSocketState.READY) return;
-        state = DiscordWebSocketState.RECONNECTING;
-        logger.warn(marker, "Detected heartbeat timeout.");
+        logger.warn("Detected heartbeat timeout.");
         heartbeatGenerator.pause();
-        session.close(4006, "");
+        session.close(4006, "Didn't receive heartbeat.");
         session = null;
-        connect();
     }
 
     private synchronized void dispatch(JSONObject data, String type) {
@@ -461,7 +466,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     // Ignored
                     break;
                 default:
-                    logger.warn(marker, "Unrecognized event received.");
+                    logger.warn("Unrecognized event received.");
                     break;
             }
         }
@@ -491,7 +496,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         final UnavailableServerObject[] servers = serverList.toArray(new UnavailableServerObject[serverList.size()]);
 
         if(heartbeatThread == null) {
-            logger.debug(marker, "Starting heartbeat thread.");
+            logger.debug("Starting heartbeat thread.");
             heartbeatThread = new Thread(() -> heartbeatGenerator.start());
             heartbeatThread.start();
         }

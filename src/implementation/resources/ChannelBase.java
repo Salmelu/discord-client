@@ -1,12 +1,12 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
 import cz.salmelu.discord.implementation.net.DiscordRequestException;
 import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.Channel;
-import cz.salmelu.discord.resources.Emoji;
 import cz.salmelu.discord.resources.Message;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -107,5 +107,10 @@ public abstract class ChannelBase implements Channel {
             throw new IllegalArgumentException("Limit must be between 1 and 100.");
         }
         return getMessagesCommon("after=" + messageId + "&limit=" + limit);
+    }
+
+    @Override
+    public void triggerTyping() {
+        client.getRequester().postRequest(Endpoint.CHANNEL + "/" + getId() + "/typing");
     }
 }

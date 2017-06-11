@@ -1,6 +1,6 @@
 package cz.salmelu.discord.implementation;
 
-import cz.salmelu.discord.Emojis;
+import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.NotifyManager;
 import cz.salmelu.discord.implementation.events.PresenceUpdateImpl;
 import cz.salmelu.discord.implementation.events.TypingStartedImpl;
@@ -12,8 +12,6 @@ import cz.salmelu.discord.events.PresenceUpdate;
 import cz.salmelu.discord.resources.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import java.util.Arrays;
 import java.util.List;
@@ -28,7 +26,6 @@ public class Dispatcher {
     private final ModuleManager moduleManager;
 
     private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class.getSimpleName());
-    private static final Marker marker = MarkerFactory.getMarker("Dispatcher");
 
     private boolean ignoreOwnMessages;
     private boolean ignoreBotMessages;
@@ -55,7 +52,7 @@ public class Dispatcher {
                 method.dispatch(a);
             }
             catch (Exception e) {
-                logger.warn(marker, "A module threw an exception", e);
+                logger.warn("A module threw an exception", e);
             }
         }
     }
@@ -73,7 +70,7 @@ public class Dispatcher {
             callback.call(o);
         }
         catch (Exception e) {
-            logger.warn(marker, "Notification callback threw an exception.", e);
+            logger.warn("Notification callback threw an exception.", e);
         }
     }
 
@@ -97,13 +94,13 @@ public class Dispatcher {
     public void onChannelCreate(ChannelObject channelObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(channelObject.getGuildId());
         if(server == null || server.isDisabled()) {
-            logger.debug(marker, "Created channel for non-tracked server.");
+            logger.debug("Created channel for non-tracked server.");
             // Doesn't matter, we don't track this server
             return;
         }
         final ServerChannel oldChannel = server.getChannelById(channelObject.getId());
         if(oldChannel != null) {
-            logger.warn(marker, "Detected old channel hanging, removing it.");
+            logger.warn("Detected old channel hanging, removing it.");
             // Something old needs to be get rid of
             server.removeChannel(oldChannel);
         }
@@ -115,7 +112,7 @@ public class Dispatcher {
     public void onChannelUpdate(ChannelObject channelObject) {
         final Channel channel = client.getChannelById(channelObject.getId());
         if(channel == null || channel.isPrivate()) {
-            logger.warn(marker, "Update for channel that is tracked as private, skipping.");
+            logger.warn("Update for channel that is tracked as private, skipping.");
             return;
         }
         ((ServerChannelImpl) channel).update(channelObject);
@@ -131,7 +128,7 @@ public class Dispatcher {
     public void onChannelDelete(ChannelObject channelObject) {
         final Channel removed = client.getChannelById(channelObject.getId());
         if(removed.isPrivate()) {
-            logger.warn(marker, "Remove for server  channel that is tracked as private, ignoring server.");
+            logger.warn("Remove for server  channel that is tracked as private, ignoring server.");
             client.removeChannel(removed);
             return;
         }
@@ -158,7 +155,7 @@ public class Dispatcher {
         // WARNING: deserialize is incomplete, see https://discordapp.com/developers/docs/resources/guild#guild-object
         final ServerImpl server = (ServerImpl) client.getServerById(serverObject.getId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated, skipping.");
+            logger.warn("No server found to be updated, skipping.");
             return;
         }
         server.update(serverObject);
@@ -168,39 +165,40 @@ public class Dispatcher {
     public void onServerMemberAdd(ServerMemberAddResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated with new member, skipping.");
+            logger.warn("No server found to be updated with new member, skipping.");
             return;
         }
         if(server.getMemberById(memberObject.getUser().getId()) != null) {
-            logger.debug(marker, "Member already associated with server, skipping.");
+            logger.debug("Member already associated with server, skipping.");
             return;
         }
-        server.addMember(memberObject);
-        // TODO: fire onMemberAdd
+        Member member = server.addMember(memberObject);
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberAdd, member));
     }
 
     public void onServerMemberRemove(ServerMemberRemoveResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated with new member, skipping.");
+            logger.warn("No server found to be updated with new member, skipping.");
             return;
         }
         if(server.getMemberById(memberObject.getUser().getId()) == null) {
-            logger.debug(marker, "Member already not in server, skipping.");
+            logger.debug("Member already not in server, skipping.");
             return;
         }
-        server.removeMember(memberObject.getUser());
+        final User user = client.getUser(memberObject.getUser().getId());
+        server.removeMember(user);
         // TODO: fire onMemberRemove
     }
 
     public void onServerMemberUpdate(ServerMemberUpdateResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated with new member, skipping.");
+            logger.warn("No server found to be updated with new member, skipping.");
             return;
         }
         if(server.getMemberById(memberObject.getUser().getId()) == null) {
-            logger.debug(marker, "No member in server, skipping.");
+            logger.debug("No member in server, skipping.");
             return;
         }
         server.updateMember(memberObject);
@@ -210,7 +208,7 @@ public class Dispatcher {
     public void onServerMemberChunk(ServerMemberChunkResponse chunkObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(chunkObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated with new member, skipping.");
+            logger.warn("No server found to be updated with new member, skipping.");
             return;
         }
         Arrays.stream(chunkObject.getMembers()).forEach(server::addMember);
@@ -220,7 +218,7 @@ public class Dispatcher {
     public void onRoleCreate(ServerRoleResponse roleObject) {
         ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated for role, skipping.");
+            logger.warn("No server found to be updated for role, skipping.");
             return;
         }
         final Role newRole = server.addRole(roleObject.getRole());
@@ -230,12 +228,12 @@ public class Dispatcher {
     public void onRoleUpdate(ServerRoleResponse roleObject) {
         ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated for role, skipping.");
+            logger.warn("No server found to be updated for role, skipping.");
             return;
         }
         final Role role = server.getRoleById(roleObject.getRole().getId());
         if(role == null) {
-            logger.warn(marker, "No server found to be updated for role, creating a new one instead.");
+            logger.warn("No server found to be updated for role, creating a new one instead.");
             final Role newRole = server.addRole(roleObject.getRole());
             // TODO: fire onRoleUpdate
         }
@@ -248,7 +246,7 @@ public class Dispatcher {
     public void onRoleDelete(ServerRoleDeleteResponse roleObject) {
         ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
-            logger.warn(marker, "No server found to be updated for role, skipping.");
+            logger.warn("No server found to be updated for role, skipping.");
             return;
         }
         server.removeRole(roleObject.getRoleId());
@@ -284,11 +282,11 @@ public class Dispatcher {
         final MessageImpl message = new MessageImpl(client, messageObject);
         if(message.getAuthor() != null) {
             if (ignoreBotMessages && messageObject.getAuthor().isBot()) {
-                logger.debug(marker, "Skipping a bot message.");
+                logger.debug("Skipping a bot message.");
                 return;
             }
             if (ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
-                logger.debug(marker, "Skipping own message.");
+                logger.debug("Skipping own message.");
                 return;
             }
         }
@@ -314,11 +312,11 @@ public class Dispatcher {
         final MessageImpl message = new MessageImpl(client, messageObject);
         ((ChannelBase) message.getChannel()).cacheMessage(message);
         if(ignoreBotMessages && messageObject.getAuthor().isBot()) {
-            logger.debug(marker, "Skipping a bot message.");
+            logger.debug("Skipping a bot message.");
             return;
         }
         if(ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
-            logger.debug(marker, "Skipping your own message.");
+            logger.debug("Skipping your own message.");
             return;
         }
         if(message.getRawText().trim().equals(helpCommand)) {
@@ -343,7 +341,7 @@ public class Dispatcher {
                     try {
                         return listener.matchMessage(message);
                     } catch (Exception e) {
-                        logger.warn(marker, "Matching message threw an exception.", e);
+                        logger.warn("Matching message threw an exception.", e);
                     }
                     return false;
                 })
@@ -358,9 +356,9 @@ public class Dispatcher {
             // Not a tracked channel, message not tracked either
             return;
         }
-        Emoji emoji = Emojis.getByUnicode(reactionObject.getEmoji().getName());
+        Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
         if(emoji == null) {
-            logger.debug(marker, "Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
+            logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;
         }
         channel.addReaction(reactionObject, emoji);
@@ -373,9 +371,9 @@ public class Dispatcher {
             // Not a tracked channel, message not tracked either
             return;
         }
-        Emoji emoji = Emojis.getByUnicode(reactionObject.getEmoji().getName());
+        Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
         if(emoji == null) {
-            logger.debug(marker, "Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
+            logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;
         }
         channel.removeReaction(reactionObject, emoji);

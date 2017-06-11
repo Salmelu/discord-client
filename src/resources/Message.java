@@ -1,5 +1,7 @@
 package cz.salmelu.discord.resources;
 
+import cz.salmelu.discord.Emoji;
+
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;

@@ -43,6 +43,11 @@ public class UserImpl implements cz.salmelu.discord.resources.User {
     }
 
     @Override
+    public String getDiscriminator() {
+        return originalObject.getDiscriminator();
+    }
+
+    @Override
     public String getMention() {
         return "<@" + getId() + ">";
     }

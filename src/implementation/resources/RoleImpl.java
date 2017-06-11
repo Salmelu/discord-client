@@ -1,7 +1,12 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.json.resources.RoleObject;
+import cz.salmelu.discord.resources.Permission;
 import cz.salmelu.discord.resources.Role;
+
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.Set;
 
 public class RoleImpl implements Role {
 
@@ -47,7 +52,8 @@ public class RoleImpl implements Role {
         return "<@&" + getId() + ">";
     }
 
-    public long getPermissions() {
-        return originalObject.getPermissions();
+    @Override
+    public Set<Permission> getPermissions() {
+        return Collections.unmodifiableSet(Permission.getPermissions(originalObject.getPermissions()));
     }
 }

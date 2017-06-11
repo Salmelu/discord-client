@@ -1,10 +1,14 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.implementation.json.resources.PermissionOverwriteObject;
 import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
 import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
+import cz.salmelu.discord.implementation.net.Endpoint;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.function.Predicate;
@@ -26,6 +30,7 @@ public class ServerImpl implements Server {
     private final Map<String, MemberImpl> membersByNick = new HashMap<>();
 
     private boolean disabled = false;
+    private Set<Permission> permissions = null;
     private RoleImpl everyoneRole;
     private MemberImpl me;
 
@@ -82,15 +87,21 @@ public class ServerImpl implements Server {
         return me;
     }
 
-    public long getPermissions() {
-        if(disabled) return 0;
+    @Override
+    public Set<Permission> getPermissions() {
+        if(disabled) return EnumSet.noneOf(Permission.class);
+        if(permissions != null) return permissions;
         // adds everyone permission + user role's permissions together
-        return getMe().getRoles().stream().map(role -> ((RoleImpl) (role)).getPermissions())
-                .reduce(everyoneRole.getPermissions(), (p1, p2) -> p1 | p2);
+        EnumSet<Permission> set = EnumSet.copyOf(everyoneRole.getPermissions());
+        for(Role role : getMe().getRoles()) {
+            set.addAll(role.getPermissions());
+        }
+        permissions = Collections.unmodifiableSet(set);
+        return permissions;
     }
 
-    public boolean checkPermission(Predicate<Long> permissionChecker) {
-        return permissionChecker.test(getPermissions());
+    public boolean checkPermission(Permission permission) {
+        return permissions.contains(permission);
     }
 
     public void disable() {
@@ -132,6 +143,7 @@ public class ServerImpl implements Server {
         originalObject.setMfaLevel(serverObject.getMfaLevel());
 
         updateRoles();
+        permissions = null;
         channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
     }
 
@@ -173,7 +185,7 @@ public class ServerImpl implements Server {
         rolesByName.remove(role.getName());
     }
 
-    public void addMember(ServerMemberObject memberObject) {
+    public Member addMember(ServerMemberObject memberObject) {
         UserImpl user = client.getUser(memberObject.getUser().getId());
         if(user == null) {
             user = new UserImpl(client, memberObject.getUser());
@@ -189,6 +201,7 @@ public class ServerImpl implements Server {
         if(memberRef.getId().equals(client.getMyUser().getId())) {
             me = memberRef;
         }
+        return memberRef;
     }
 
     public void removeMember(User userObject) {
@@ -199,10 +212,29 @@ public class ServerImpl implements Server {
 
     public void updateMember(ServerMemberUpdateResponse memberObject) {
         MemberImpl member = membersById.get(memberObject.getUser().getId());
+
+        final String oldNick = member.getNickname();
+        if(oldNick != null) {
+            membersByNick.remove(oldNick);
+        }
+        else {
+            membersByNick.remove(member.getUser().getName());
+        }
+
+        final String newNick = memberObject.getNick();
+        if(newNick != null) {
+            membersByNick.put(newNick, member);
+        }
+        else {
+            membersByNick.put(member.getUser().getName(), member);
+        }
+
         member.setNickname(memberObject.getNick());
+
         member.setRoles(memberObject.getRoles());
         ((UserImpl) member.getUser()).update(memberObject.getUser());
         if(memberObject.getUser().getId().equals(me.getUser().getId())) {
+            permissions = null;
             channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
         }
     }
@@ -274,5 +306,38 @@ public class ServerImpl implements Server {
     @Override
     public Member getMemberByNickname(String nickname) {
         return membersByNick.get(nickname);
+    }
+
+    @Override
+    public void createTextChannel(String name, List<PermissionOverwrite> overwrites) {
+        final JSONObject object = new JSONObject();
+        object.put("name", name);
+        object.put("type", "text");
+        createChannelCommon(object, overwrites);
+    }
+
+    @Override
+    public void createVoiceChannel(String name, int bitrate, int userLimit, List<PermissionOverwrite> overwrites) {
+        final JSONObject object = new JSONObject();
+        object.put("name", name);
+        object.put("type", "voice");
+        object.put("bitrate", bitrate);
+        object.put("user_limit", userLimit);
+        createChannelCommon(object, overwrites);
+    }
+
+    private void createChannelCommon(JSONObject object, List<PermissionOverwrite> overwrites) {
+        final JSONArray overwritesArray = new JSONArray();
+        overwrites.forEach(overwrite -> {
+            PermissionOverwriteObject poo = new PermissionOverwriteObject();
+            poo.setId(overwrite.getId());
+            poo.setType(overwrite.getType());
+            poo.setAllow(Permission.convertToValue(overwrite.getAllow()));
+            poo.setDeny(Permission.convertToValue(overwrite.getDeny()));
+            overwritesArray.put(poo);
+        });
+
+        object.put("permission_overwrites", overwritesArray);
+        client.getRequester().postRequest(Endpoint.SERVER + "/" + getId() + "/channels");
     }
 }

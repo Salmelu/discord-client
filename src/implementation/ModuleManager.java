@@ -5,6 +5,8 @@ import cz.salmelu.discord.listeners.Initializer;
 import cz.salmelu.discord.listeners.MessageListener;
 import cz.salmelu.discord.listeners.ServerListener;
 import cz.salmelu.discord.listeners.UserActionListener;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -23,35 +25,37 @@ public class ModuleManager {
     private final List<ServerListener> serverListeners = new ArrayList<>();
     private final Context context;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
+
     public ModuleManager(Context context) {
         this.context = context;
+        logger.debug("Initialized.");
     }
 
-    public void addModule(Class<?> moduleClass) {
+    public void addModule(Class<?> moduleClass) throws IllegalArgumentException {
         Object module = null;
         Constructor<?> constructor = null;
+
+        logger.debug("Processing class " + moduleClass.getName() + ".");
+
         try {
-            try {
-                constructor = moduleClass.getConstructor(Context.class);
+            constructor = moduleClass.getConstructor(Context.class);
+            logger.debug("Found Context constructor.");
+        }
+        catch (NoSuchMethodException e) {
+            logger.debug("Context constructor not found, using default constructor.");
+        }
+        try {
+            if (constructor != null) {
+                module = constructor.newInstance(context);
             }
-            catch (NoSuchMethodException e) {
-                // Not found, okay
-            }
-            try {
-                if (constructor != null) {
-                    module = constructor.newInstance(context);
-                }
-                else {
-                    module = moduleClass.newInstance();
-                }
-            }
-            catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                e.printStackTrace();
-                throw new IllegalArgumentException("Invalid class supplied as a module.");
+            else {
+                module = moduleClass.newInstance();
             }
         }
-        catch(Exception e) {
-            e.printStackTrace();
+        catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
+            logger.error("Couldn't initialize an instance of given module.", e);
+            throw new IllegalArgumentException("Invalid class supplied as a module.");
         }
 
         if(Initializer.class.isAssignableFrom(moduleClass)) {
@@ -68,11 +72,27 @@ public class ModuleManager {
         if (ServerListener.class.isAssignableFrom(moduleClass)) {
             serverListeners.add((ServerListener) module);
         }
+
+        logger.debug("Module initialized.");
         messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
     }
 
-    public void loadModules() {
-        messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
+    public void loadModules(List<String> moduleList) throws IllegalArgumentException {
+        boolean failing = false;
+        for (String className : moduleList) {
+            try {
+                Class<?> loaded = Class.forName(className);
+                addModule(loaded);
+            }
+            catch (ClassNotFoundException e) {
+                System.err.println("Could not find class " + className);
+                failing = true;
+            }
+        }
+
+        if(failing) {
+            throw new IllegalArgumentException("Some of the classes couldn't been loaded.");
+        }
     }
 
     public List<Initializer> getInitializers() {

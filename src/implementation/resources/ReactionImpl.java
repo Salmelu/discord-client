@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.implementation.json.resources.ReactionObject;
 import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
-import cz.salmelu.discord.resources.Emoji;
 import cz.salmelu.discord.resources.Message;
 import cz.salmelu.discord.resources.Reaction;
 

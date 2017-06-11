@@ -1,13 +1,10 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.PermissionDeniedException;
-import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.net.Endpoint;
-import cz.salmelu.discord.resources.Member;
-import cz.salmelu.discord.resources.Role;
-import cz.salmelu.discord.resources.User;
+import cz.salmelu.discord.resources.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,13 +59,21 @@ public class MemberImpl implements Member {
     }
 
     @Override
+    public Server getServer() {
+        return server;
+    }
+
+    @Override
     public String getMention() {
         return "<@!" + getId() + ">";
     }
 
     @Override
     public void addRole(Role role) throws PermissionDeniedException {
-        if(!server.checkPermission(PermissionHelper::canManageRoles)) {
+        if(roles.contains(role)) {
+            return;
+        }
+        if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of that server.");
         }
         client.getRequester().putRequest(Endpoint.SERVER + "/" + server.getId()
@@ -78,7 +83,10 @@ public class MemberImpl implements Member {
 
     @Override
     public void removeRole(Role role) throws PermissionDeniedException {
-        if(!server.checkPermission(PermissionHelper::canManageRoles)) {
+        if(!roles.contains(role)) {
+            return;
+        }
+        if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of that server.");
         }
         client.getRequester().deleteRequest(Endpoint.SERVER + "/" + server.getId()

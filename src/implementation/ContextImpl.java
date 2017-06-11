@@ -14,7 +14,8 @@ public class ContextImpl implements Context {
         storageManager = new StorageManagerImpl();
         notifyManager = new NotifyManagerImpl();
         subscriptionManager = new SubscriptionManagerImpl(
-                storageManager.getStorage(this, "subscription_manager"));
+                storageManager.getStorage(this, "subscription_manager_channels"),
+                storageManager.getStorage(this, "subscription_manager_subs"));
     }
 
     public void setDispatcher(Dispatcher dispatcher) {

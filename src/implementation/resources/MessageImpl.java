@@ -1,7 +1,7 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.PermissionDeniedException;
-import cz.salmelu.discord.implementation.PermissionHelper;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
@@ -137,14 +137,14 @@ public class MessageImpl implements Message {
     public void addReaction(Emoji emoji) {
         try {
             final Channel channel = getChannel();
-            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji.getName())).findFirst().orElse(null);
+            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
             if (!channel.isPrivate()) {
                 final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
-                if (!serverChannel.checkPermission(PermissionHelper::canAddReactions)) {
+                if (!serverChannel.checkPermission(Permission.READ_MESSAGE_HISTORY)) {
                     throw new PermissionDeniedException("This application cannot access message history of affected channel.");
                 }
                 if (reaction == null) {
-                    if (!serverChannel.checkPermission(PermissionHelper::canAddReactions)) {
+                    if (!serverChannel.checkPermission(Permission.ADD_REACTIONS)) {
                         throw new PermissionDeniedException("This application cannot add reactions in affected channel.");
                     }
                 }

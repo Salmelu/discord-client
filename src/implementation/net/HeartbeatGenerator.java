@@ -3,6 +3,8 @@ package cz.salmelu.discord.implementation.net;
 import cz.salmelu.discord.implementation.json.JSONMappedObject;
 import cz.salmelu.discord.implementation.json.request.HeartbeatRequest;
 import org.json.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HeartbeatGenerator {
 
@@ -14,6 +16,8 @@ public class HeartbeatGenerator {
     private long nextTick = 0;
     private Integer sequenceNumber = null;
 
+    private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
+
     public HeartbeatGenerator(DiscordWebSocket socket) {
         this.socket = socket;
     }
@@ -23,12 +27,14 @@ public class HeartbeatGenerator {
     }
 
     public void start() {
+        logger.debug("Heartbeat generator started.");
         active = true;
         heartbeatReceived = true;
         nextTick = System.currentTimeMillis();
         while(active) {
             if(nextTick <= System.currentTimeMillis()) {
                 if(!heartbeatReceived) {
+                    logger.debug("No heartbeat received, timing out.");
                     socket.timeout();
                     return;
                 }
@@ -56,14 +62,18 @@ public class HeartbeatGenerator {
     }
 
     public void stop() {
+        logger.debug("Heartbeat generator stopped.");
         active = false;
     }
 
     public void pause() {
+        logger.debug("Heartbeat generator paused.");
         paused = true;
     }
 
-    public void resume() {
+    public void resume(boolean ack) {
+        logger.debug("Heartbeat generator resumed (ack = " + ack + ").");
+        heartbeatReceived = ack;
         paused = false;
     }
 
@@ -73,9 +83,11 @@ public class HeartbeatGenerator {
 
     void sendHeartbeat() {
         if(paused) {
+            logger.debug("Stalling heartbeat because of paused generator.");
             nextTick = System.currentTimeMillis() + 5000;
             return;
         }
+        logger.debug("Sending heartbeat to websocket.");
         JSONObject beat = new JSONObject();
         beat.put("op", DiscordSocketMessage.HEARTBEAT);
         if(sequenceNumber == null) {
