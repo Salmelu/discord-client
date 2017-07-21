@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.request;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class IdentifyRequest extends JSONMappedObject {
+public class IdentifyRequest implements MappedObject {
     String token;
     IdentifyRequestProperties properties;
     boolean compress;

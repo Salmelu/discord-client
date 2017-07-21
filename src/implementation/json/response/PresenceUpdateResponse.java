@@ -1,12 +1,11 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.GameObject;
-import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.resources.PresenceStatus;
 
-public class PresenceUpdateResponse extends JSONMappedObject {
+public class PresenceUpdateResponse implements MappedObject {
     private UserObject user;
     private PresenceStatus status;
     private String[] roles;

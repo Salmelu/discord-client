@@ -1,7 +1,5 @@
-package cz.salmelu.discord.implementation.net;
+package cz.salmelu.discord.implementation.net.socket;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
-import cz.salmelu.discord.implementation.json.request.HeartbeatRequest;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

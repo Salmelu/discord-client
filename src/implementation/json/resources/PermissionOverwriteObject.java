@@ -1,8 +1,9 @@
 package cz.salmelu.discord.implementation.json.resources;
 
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.resources.PermissionOverwriteType;
 
-public class PermissionOverwriteObject {
+public class PermissionOverwriteObject implements MappedObject {
     private String id;
     private PermissionOverwriteType type;
     private long allow;

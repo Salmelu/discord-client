@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 
-public class ServerMemberChunkResponse extends JSONMappedObject {
+public class ServerMemberChunkResponse implements MappedObject {
     private String guildId;
     private ServerMemberObject[] members;
 

@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class IntegrationObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class IntegrationObject implements MappedObject {
     String id;
     String name;
     String type;

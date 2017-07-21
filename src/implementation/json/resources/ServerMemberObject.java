@@ -1,10 +1,10 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
 import java.util.Date;
 
-public class ServerMemberObject extends JSONMappedObject {
+public class ServerMemberObject implements MappedObject {
     private UserObject user;
     private String nickname;
     private String[] roles;

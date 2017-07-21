@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class ServerEmojiObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class ServerEmojiObject implements MappedObject {
     String id;
     String name;
     RoleObject[] roles;

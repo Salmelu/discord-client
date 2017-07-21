@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class UnavailableServerObject extends JSONMappedObject {
+public class UnavailableServerObject implements MappedObject {
     private String id;
     private boolean unavailable;
 

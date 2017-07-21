@@ -1,14 +1,14 @@
 package cz.salmelu.discord.resources;
 
-import com.google.gson.annotations.SerializedName;
+import cz.salmelu.discord.implementation.json.reflector.MappedName;
 
 public enum PresenceStatus {
-    @SerializedName("idle")
+    @MappedName("idle")
     IDLE,
-    @SerializedName("dnd")
+    @MappedName("dnd")
     DND,
-    @SerializedName("online")
+    @MappedName("online")
     ONLINE,
-    @SerializedName("offline")
+    @MappedName("offline")
     OFFLINE
 }

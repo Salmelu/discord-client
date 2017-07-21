@@ -2,7 +2,8 @@ package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 
 public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
@@ -46,7 +47,8 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
     public void sendMessage(String text) {
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
-        client.getRequester().postRequest(Endpoint.CHANNEL + "/" + id + "/messages", messageObject);
+        client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(id).addElement("messages").build(), messageObject);
     }
 
     @Override

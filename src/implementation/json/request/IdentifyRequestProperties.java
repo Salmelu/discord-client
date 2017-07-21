@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.request;
 
-public class IdentifyRequestProperties {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class IdentifyRequestProperties implements MappedObject {
     private String $os = System.getProperty("os.name");
     private String $browser;
     private String $device;

@@ -1,9 +1,14 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.Dispatcher;
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.net.*;
+import cz.salmelu.discord.implementation.net.rest.DiscordHttpRequester;
+import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.socket.DiscordWebSocket;
+import cz.salmelu.discord.implementation.net.socket.DiscordWebSocketState;
 import cz.salmelu.discord.resources.*;
 import org.json.JSONObject;
 
@@ -18,6 +23,7 @@ public class ClientImpl implements Client {
     private final String botToken;
     private final DiscordHttpRequester requester;
     private final RateLimiter limiter;
+    private final Serializer serializer;
     private DiscordWebSocket socket;
 
     private final List<Server> serverList = new ArrayList<>();
@@ -45,14 +51,14 @@ public class ClientImpl implements Client {
             throw new RuntimeException(e);
         }
 
-        socket = new DiscordWebSocket(botToken, dispatcher, limiter);
+        socket = new DiscordWebSocket(botToken, serializer, dispatcher, limiter);
         socket.connect(uri);
     }
 
     public void verifyUser() {
         try {
             JSONObject userObject = getRequester().getRequestAsObject(Endpoint.MY_USER);
-            myUser = new UserImpl(this, JSONMappedObject.deserialize(userObject, UserObject.class));
+            myUser = new UserImpl(this, serializer.deserialize(userObject, UserObject.class));
         }
         catch (DiscordRequestException e) {
             if(e.getResponseCode() == 401 || e.getResponseCode() == 403) {
@@ -72,7 +78,8 @@ public class ClientImpl implements Client {
     public ClientImpl(String token) {
         this.botToken = token;
         this.limiter = new RateLimiter();
-        this.requester = new DiscordHttpRequester(botToken, limiter);
+        this.serializer = new Serializer();
+        this.requester = new DiscordHttpRequester(botToken, serializer, limiter);
 
         verifyUser();
     }
@@ -86,6 +93,10 @@ public class ClientImpl implements Client {
             throw new Error("Websocket died completely, killing this thread too.");
         }
         return requester;
+    }
+
+    public Serializer getSerializer() {
+        return serializer;
     }
 
     public synchronized void addServer(Server server) {

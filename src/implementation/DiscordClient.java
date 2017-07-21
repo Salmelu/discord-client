@@ -30,7 +30,7 @@ public class DiscordClient {
     }
 
     public DiscordClient() {
-        final String helpCommand = "+help";
+        final String helpCommand = "?help";
 
         try {
             Properties properties = new Properties();

@@ -4,8 +4,9 @@ import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
-import cz.salmelu.discord.implementation.net.DiscordRequestException;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.Channel;
 import cz.salmelu.discord.resources.Message;
 import org.json.JSONArray;
@@ -49,8 +50,10 @@ public abstract class ChannelBase implements Channel {
             return messageCache.get(id);
         }
         try {
-            JSONObject rawObject = client.getRequester().getRequestAsObject(Endpoint.CHANNEL + "/" + getId() + "/messages/" + id);
-            MessageObject messageObject = MessageObject.deserialize(rawObject, MessageObject.class);
+            JSONObject rawObject = client.getRequester().getRequestAsObject(
+                    EndpointBuilder.create(Endpoint.CHANNEL).addElement(getId())
+                            .addElement("messages").addElement(id).build());
+            MessageObject messageObject = client.getSerializer().deserialize(rawObject, MessageObject.class);
             final MessageImpl message = new MessageImpl(client, messageObject);
             messageCache.put(message.getId(), message);
             return message;
@@ -63,14 +66,15 @@ public abstract class ChannelBase implements Channel {
         }
     }
 
-    private List<Message> getMessagesCommon(String params) {
+    private List<Message> getMessagesCommon(HashMap<String, String> params) {
         try {
-            JSONArray rawObjects = client.getRequester().getRequestAsArray(Endpoint.CHANNEL + "/" + getId() + "/messages"
-                    + "?" + params);
+            JSONArray rawObjects = client.getRequester().getRequestAsArray(EndpointBuilder
+                    .create(Endpoint.CHANNEL).addElement(getId()).addElement("messages")
+                    .addParamMap(params).build());
             if(rawObjects == null) return null;
             List<Message> messages = new ArrayList<>();
             for (int i = 0; i < rawObjects.length(); i++) {
-                MessageObject messageObject = MessageObject.deserialize(rawObjects.getJSONObject(i), MessageObject.class);
+                MessageObject messageObject = client.getSerializer().deserialize(rawObjects.getJSONObject(i), MessageObject.class);
                 final MessageImpl message = new MessageImpl(client, messageObject);
                 messages.add(message);
                 messageCache.put(message.getId(), message);
@@ -90,7 +94,10 @@ public abstract class ChannelBase implements Channel {
         if(limit < 1 || limit > 100) {
             throw new IllegalArgumentException("Limit must be between 1 and 100.");
         }
-        return getMessagesCommon("before=" + messageId + "&limit=" + limit);
+        final HashMap<String, String> params = new HashMap<>();
+        params.put("before", messageId);
+        params.put("limit", String.valueOf(limit));
+        return getMessagesCommon(params);
     }
 
     @Override
@@ -98,7 +105,10 @@ public abstract class ChannelBase implements Channel {
         if(limit < 1 || limit > 100) {
             throw new IllegalArgumentException("Limit must be between 1 and 100.");
         }
-        return getMessagesCommon("around=" + messageId + "&limit=" + limit);
+        final HashMap<String, String> params = new HashMap<>();
+        params.put("around", messageId);
+        params.put("limit", String.valueOf(limit));
+        return getMessagesCommon(params);
     }
 
     @Override
@@ -106,11 +116,15 @@ public abstract class ChannelBase implements Channel {
         if(limit < 1 || limit > 100) {
             throw new IllegalArgumentException("Limit must be between 1 and 100.");
         }
-        return getMessagesCommon("after=" + messageId + "&limit=" + limit);
+        final HashMap<String, String> params = new HashMap<>();
+        params.put("after", messageId);
+        params.put("limit", String.valueOf(limit));
+        return getMessagesCommon(params);
     }
 
     @Override
     public void triggerTyping() {
-        client.getRequester().postRequest(Endpoint.CHANNEL + "/" + getId() + "/typing");
+        client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("typing").build());
     }
 }

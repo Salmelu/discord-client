@@ -1,10 +1,10 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
 import java.time.LocalDateTime;
 
-public class ServerObject extends JSONMappedObject {
+public class ServerObject implements MappedObject {
     private String id;
     private String name;
     private String iconHash;

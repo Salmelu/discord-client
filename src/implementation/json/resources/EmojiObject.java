@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class EmojiObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class EmojiObject implements MappedObject {
     private String id;
     private String name;
 

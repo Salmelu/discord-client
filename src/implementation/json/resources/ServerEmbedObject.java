@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class ServerEmbedObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class ServerEmbedObject implements MappedObject {
     boolean enabled;
     String channelId;
 }

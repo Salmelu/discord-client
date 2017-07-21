@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.PermissionDeniedException;
-import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 
 import java.util.ArrayList;
@@ -76,8 +76,9 @@ public class MemberImpl implements Member {
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of that server.");
         }
-        client.getRequester().putRequest(Endpoint.SERVER + "/" + server.getId()
-                + "/members/" + getId() + "/roles/" + role.getId());
+        client.getRequester().putRequest(EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(server.getId()).addElement("members").addElement(getId())
+                .addElement("roles").addElement(role.getId()).build());
         roles.add(role);
     }
 
@@ -89,8 +90,9 @@ public class MemberImpl implements Member {
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of that server.");
         }
-        client.getRequester().deleteRequest(Endpoint.SERVER + "/" + server.getId()
-                + "/members/" + getId() + "/roles/" + role.getId());
+        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(server.getId()).addElement("members").addElement(getId())
+                .addElement("roles").addElement(role.getId()).build());
         roles.remove(role);
     }
 

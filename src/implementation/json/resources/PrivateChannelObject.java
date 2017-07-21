@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class PrivateChannelObject extends JSONMappedObject {
+public class PrivateChannelObject implements MappedObject {
     private String id;
     private boolean isPrivate;
     private UserObject recipient;

@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 
-public class ServerMemberUpdateResponse extends JSONMappedObject {
+public class ServerMemberUpdateResponse implements MappedObject {
     private String guildId;
     private String[] roles;
     private UserObject user;

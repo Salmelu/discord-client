@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import org.json.JSONObject;
 
-public class ChannelObject extends JSONMappedObject {
+public class ChannelObject implements MappedObject {
     private String id;
     private String guildId;
     private String name;

@@ -1,10 +1,10 @@
 package cz.salmelu.discord.resources;
 
-import com.google.gson.annotations.SerializedName;
+import cz.salmelu.discord.implementation.json.reflector.MappedName;
 
 public enum PermissionOverwriteType {
-    @SerializedName("role")
+    @MappedName("role")
     ROLE,
-    @SerializedName("member")
+    @MappedName("member")
     MEMBER
 }

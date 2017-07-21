@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.request;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class HeartbeatRequest extends JSONMappedObject {
+public class HeartbeatRequest implements MappedObject {
     private int op;
     private Integer d = null;
 

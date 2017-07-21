@@ -1,5 +1,7 @@
 package cz.salmelu.discord.implementation.net;
 
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.HashMap;
@@ -105,7 +107,7 @@ public class RateLimiter {
         }
     }
 
-    public long checkLimit(String endpoint) {
+    public long checkLimit(Endpoint endpoint) {
         updateGlobalLimit();
         if(globalLimit != -1) {
             long retry = globalLimit - System.currentTimeMillis(); // we are limitted globally
@@ -113,15 +115,15 @@ public class RateLimiter {
         }
 
         // look what the endpoint is
-        if(endpoint.startsWith(Endpoint.CHANNEL)) {
-            return checkEndpointMap(channelLimits, endpoint.substring(Endpoint.CHANNEL.length()).split("/")[0]);
+        if(endpoint.isChannel()) {
+            return checkEndpointMap(channelLimits, endpoint.getElement(1));
         }
-        else if(endpoint.startsWith(Endpoint.SERVER)) {
+        else if(endpoint.isServer()) {
             // FIXME: this wont work with the createServer(), but well...
-            return checkEndpointMap(serverLimits, endpoint.substring(Endpoint.SERVER.length()).split("/")[0]);
+            return checkEndpointMap(serverLimits, endpoint.getElement(1));
         }
         else {
-            return checkEndpointMap(endpointLimits, endpoint.substring(Endpoint.BASE.length()));
+            return checkEndpointMap(endpointLimits, endpoint.getBase());
         }
     }
 
@@ -129,27 +131,25 @@ public class RateLimiter {
         map.put(id, new ResetRemainPair(reset, remaining));
     }
 
-    private void updateLimitInner(String endpoint, long reset, int remaining) {
+    private void updateLimitInner(Endpoint endpoint, long reset, int remaining) {
         // look what the endpoint is
-        if(endpoint.startsWith(Endpoint.CHANNEL)) {
-            updateEndpointMap(channelLimits,
-                    endpoint.substring(Endpoint.CHANNEL.length()).split("/")[0], reset, remaining);
+        if(endpoint.isChannel()) {
+            updateEndpointMap(channelLimits, endpoint.getElement(1), reset, remaining);
         }
-        else if(endpoint.startsWith(Endpoint.SERVER)) {
+        else if(endpoint.isServer()) {
             // FIXME: this wont work with the createServer(), but well...
-            updateEndpointMap(serverLimits,
-                    endpoint.substring(Endpoint.SERVER.length()).split("/")[0], reset, remaining);
+            updateEndpointMap(serverLimits, endpoint.getElement(1), reset, remaining);
         }
         else {
-            updateEndpointMap(endpointLimits, endpoint.substring(Endpoint.BASE.length()), reset, remaining);
+            updateEndpointMap(endpointLimits, endpoint.getBase(), reset, remaining);
         }
     }
 
-    public void updateLimit(String endpoint, long reset, int remaining) {
+    public void updateLimit(Endpoint endpoint, long reset, int remaining) {
         updateLimitInner(endpoint, reset * 1000, remaining);
     }
 
-    public void updateLimitRetry(String endpoint, long retryAfter) {
+    public void updateLimitRetry(Endpoint endpoint, long retryAfter) {
         updateLimitInner(endpoint, System.currentTimeMillis() + retryAfter, 0);
     }
 

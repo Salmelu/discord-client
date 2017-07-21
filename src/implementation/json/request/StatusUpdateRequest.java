@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.request;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.GameObject;
 
-public class StatusUpdateRequest extends JSONMappedObject {
+public class StatusUpdateRequest implements MappedObject {
     private Long idle;
     private GameObject game;
 

@@ -1,8 +1,10 @@
 package cz.salmelu.discord.implementation.json.resources.embed;
 
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
 import java.time.LocalDateTime;
 
-public class EmbedObject {
+public class EmbedObject implements MappedObject {
     String title;
     String type;
     String description;

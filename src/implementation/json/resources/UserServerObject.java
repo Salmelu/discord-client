@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class UserServerObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class UserServerObject implements MappedObject {
     private String id;
     private String name;
     private String icon;

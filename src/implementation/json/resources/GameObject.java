@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class GameObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class GameObject implements MappedObject {
     private String name;
     private int type;
     private String url;

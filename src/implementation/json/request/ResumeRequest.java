@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.request;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class ResumeRequest extends JSONMappedObject {
+public class ResumeRequest implements MappedObject {
     private String token;
     private String sessionId;
     private int seq;

@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class ReactionObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class ReactionObject implements MappedObject {
     private int count;
     private boolean me;
     private EmojiObject emoji;

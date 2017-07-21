@@ -1,11 +1,13 @@
-package cz.salmelu.discord.implementation.net;
+package cz.salmelu.discord.implementation.net.socket;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.*;
 import cz.salmelu.discord.implementation.Dispatcher;
 import cz.salmelu.discord.implementation.json.request.*;
 import cz.salmelu.discord.implementation.json.response.*;
 
+import cz.salmelu.discord.implementation.net.RateLimiter;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
@@ -13,8 +15,6 @@ import org.eclipse.jetty.websocket.client.*;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
@@ -38,20 +38,23 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     private Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
     private DiscordWebSocketState state = DiscordWebSocketState.CREATED;
+    private Serializer serializer;
     private Dispatcher dispatcher;
     private RateLimiter limiter;
 
     private long failedTries = 0;
     private long lastFailedTry = 0;
+    private boolean stopping = false;
 
     private URI uri;
     private int sequenceNumber = -1;
     private String sessionId = null;
 
-    public DiscordWebSocket(String token, Dispatcher dispatcher, RateLimiter limiter) {
+    public DiscordWebSocket(String token, Serializer serializer, Dispatcher dispatcher, RateLimiter limiter) {
         this.token = token;
         this.dispatcher = dispatcher;
         this.limiter = limiter;
+        this.serializer = serializer;
 
         this.state = DiscordWebSocketState.INITIALIZED;
     }
@@ -126,6 +129,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         }
         if(session != null) {
             session.close(1000, "Gracefully ending.");
+            stopping = true;
         }
         logger.info("Closed connection to socket.");
     }
@@ -134,10 +138,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
         return state;
     }
 
-    public synchronized void sendMessage(int op, JSONMappedObject object) {
+    public synchronized void sendMessage(int op, MappedObject object) {
         JSONObject message = new JSONObject();
         message.put("op", op);
-        message.put("d", object.serialize());
+        message.put("d", serializer.serialize(object));
 
         if(op == DiscordSocketMessage.STATUS_UPDATE) {
             long wait = limiter.checkGameUpdateLimit();
@@ -237,6 +241,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         heartbeatGenerator.pause();
         if(code == 1000) {
             logger.info("Connection was closed gracefully, code = " + code + ", message = " + reason);
+            if(!stopping) connect();
         }
         else {
             logger.warn("Connection was closed, code = " + code + ", message = " + reason);
@@ -264,7 +269,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     heartbeatGenerator.heartbeatAck();
                     break;
                 case DiscordSocketMessage.HELLO:
-                    final HelloEvent event = JSONMappedObject.deserialize(message.getJSONObject("d"), HelloEvent.class);
+                    final HelloResponse event = serializer.deserialize(message.getJSONObject("d"), HelloResponse.class);
                     heartbeatGenerator.setInterval(event.getHeartbeatInterval());
                     heartbeatGenerator.resume(true);
                     if (state == DiscordWebSocketState.RECONNECTING) resume();
@@ -377,27 +382,27 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     break;
                 case "CHANNEL_CREATE":
                     if(data.getBoolean("is_private"))
-                        dispatcher.onChannelCreate(PrivateChannelObject.deserialize(data, PrivateChannelObject.class));
+                        dispatcher.onChannelCreate(serializer.deserialize(data, PrivateChannelObject.class));
                     else
-                        dispatcher.onChannelCreate(ChannelObject.deserialize(data, ChannelObject.class));
+                        dispatcher.onChannelCreate(serializer.deserialize(data, ChannelObject.class));
                     break;
                 case "CHANNEL_UPDATE":
-                    dispatcher.onChannelUpdate(ChannelObject.deserialize(data, ChannelObject.class));
+                    dispatcher.onChannelUpdate(serializer.deserialize(data, ChannelObject.class));
                     break;
                 case "CHANNEL_DELETE":
                     if(data.getBoolean("is_private"))
-                        dispatcher.onChannelDelete(PrivateChannelObject.deserialize(data, PrivateChannelObject.class));
+                        dispatcher.onChannelDelete(serializer.deserialize(data, PrivateChannelObject.class));
                     else
-                        dispatcher.onChannelDelete(ChannelObject.deserialize(data, ChannelObject.class));
+                        dispatcher.onChannelDelete(serializer.deserialize(data, ChannelObject.class));
                     break;
                 case "GUILD_CREATE":
-                    dispatcher.onServerCreate(ServerObject.deserialize(data, ServerObject.class));
+                    dispatcher.onServerCreate(serializer.deserialize(data, ServerObject.class));
                     break;
                 case "GUILD_DELETE":
                     dispatcher.onServerDelete(data.getString("id"));
                     break;
                 case "GUILD_UPDATE":
-                    dispatcher.onServerUpdate(ServerObject.deserialize(data, ServerObject.class));
+                    dispatcher.onServerUpdate(serializer.deserialize(data, ServerObject.class));
                     break;
                 case "GUILD_BAN_ADD":
                     // Ignored
@@ -412,58 +417,58 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     // Ignored
                     break;
                 case "GUILD_MEMBER_ADD":
-                    dispatcher.onServerMemberAdd(ServerMemberAddResponse.deserialize(data, ServerMemberAddResponse.class));
+                    dispatcher.onServerMemberAdd(serializer.deserialize(data, ServerMemberAddResponse.class));
                     break;
                 case "GUILD_MEMBER_REMOVE":
-                    dispatcher.onServerMemberRemove(ServerMemberRemoveResponse.deserialize(data, ServerMemberRemoveResponse.class));
+                    dispatcher.onServerMemberRemove(serializer.deserialize(data, ServerMemberRemoveResponse.class));
                     break;
                 case "GUILD_MEMBER_UPDATE":
-                    dispatcher.onServerMemberUpdate(ServerMemberUpdateResponse.deserialize(data, ServerMemberUpdateResponse.class));
+                    dispatcher.onServerMemberUpdate(serializer.deserialize(data, ServerMemberUpdateResponse.class));
                     break;
                 case "GUILD_MEMBER_CHUNK":
-                    dispatcher.onServerMemberChunk(ServerMemberChunkResponse.deserialize(data, ServerMemberChunkResponse.class));
+                    dispatcher.onServerMemberChunk(serializer.deserialize(data, ServerMemberChunkResponse.class));
                     break;
                 case "GUILD_ROLE_CREATE":
-                    dispatcher.onRoleCreate(ServerRoleResponse.deserialize(data, ServerRoleResponse.class));
+                    dispatcher.onRoleCreate(serializer.deserialize(data, ServerRoleResponse.class));
                     break;
                 case "GUILD_ROLE_UPDATE":
-                    dispatcher.onRoleUpdate(ServerRoleResponse.deserialize(data, ServerRoleResponse.class));
+                    dispatcher.onRoleUpdate(serializer.deserialize(data, ServerRoleResponse.class));
                     break;
                 case "GUILD_ROLE_DELETE":
-                    dispatcher.onRoleDelete(ServerRoleDeleteResponse.deserialize(data, ServerRoleDeleteResponse.class));
+                    dispatcher.onRoleDelete(serializer.deserialize(data, ServerRoleDeleteResponse.class));
                     break;
                 case "MESSAGE_CREATE":
-                    dispatcher.onMessage(MessageObject.deserialize(data, MessageObject.class));
+                    dispatcher.onMessage(serializer.deserialize(data, MessageObject.class));
                     break;
                 case "MESSAGE_UPDATE":
-                    dispatcher.onMessageUpdate(MessageObject.deserialize(data, MessageObject.class));
+                    dispatcher.onMessageUpdate(serializer.deserialize(data, MessageObject.class));
                     break;
                 case "MESSAGE_DELETE":
-                    dispatcher.onMessageDelete(MessageDeleteResponse.deserialize(data, MessageDeleteResponse.class));
+                    dispatcher.onMessageDelete(serializer.deserialize(data, MessageDeleteResponse.class));
                     break;
                 case "MESSAGE_DELETE_BULK":
-                    dispatcher.onMessageDeleteBulk(MessageDeleteBulkResponse.deserialize(data, MessageDeleteBulkResponse.class));
+                    dispatcher.onMessageDeleteBulk(serializer.deserialize(data, MessageDeleteBulkResponse.class));
                     break;
                 case "MESSAGE_REACTION_ADD":
-                    dispatcher.onReactionAdd(ReactionUpdateResponse.deserialize(data, ReactionUpdateResponse.class));
+                    dispatcher.onReactionAdd(serializer.deserialize(data, ReactionUpdateResponse.class));
                     break;
                 case "MESSAGE_REACTION_REMOVE":
-                    dispatcher.onReactionRemove(ReactionUpdateResponse.deserialize(data, ReactionUpdateResponse.class));
+                    dispatcher.onReactionRemove(serializer.deserialize(data, ReactionUpdateResponse.class));
                     break;
                 case "PRESENCE_UPDATE":
-                    dispatcher.onPresenceChange(PresenceUpdateResponse.deserialize(data, PresenceUpdateResponse.class));
+                    dispatcher.onPresenceChange(serializer.deserialize(data, PresenceUpdateResponse.class));
                     break;
                 case "TYPING_START":
-                    dispatcher.onTypingStart(TypingStartResponse.deserialize(data, TypingStartResponse.class));
+                    dispatcher.onTypingStart(serializer.deserialize(data, TypingStartResponse.class));
                     break;
                 case "USER_UPDATE":
-                    dispatcher.onUserUpdate(UserObject.deserialize(data, UserObject.class));
+                    dispatcher.onUserUpdate(serializer.deserialize(data, UserObject.class));
                     break;
                 case "VOICE_STATE_UPDATE":
-                    // Ignored
+                    // Ignored, we don't implement voice
                     break;
                 case "VOICE_SERVER_UPDATE":
-                    // Ignored
+                    // Ignored, we don't implement voice
                     break;
                 default:
                     logger.warn("Unrecognized event received.");
@@ -483,14 +488,14 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
         final List<PrivateChannelObject> privateList = new ArrayList<>();
         for (Object channel : data.getJSONArray("private_channels")) {
-            privateList.add(PrivateChannelObject.deserialize(((JSONObject) channel),
+            privateList.add(serializer.deserialize((JSONObject) channel,
                     PrivateChannelObject.class));
         }
         final PrivateChannelObject[] privateChannels = privateList.toArray(new PrivateChannelObject[privateList.size()]);
 
         final List<UnavailableServerObject> serverList = new ArrayList<>();
         for (Object server : data.getJSONArray("guilds")) {
-            serverList.add(UnavailableServerObject.deserialize(((JSONObject) server),
+            serverList.add(serializer.deserialize((JSONObject) server,
                     UnavailableServerObject.class));
         }
         final UnavailableServerObject[] servers = serverList.toArray(new UnavailableServerObject[serverList.size()]);

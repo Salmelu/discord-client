@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.EmojiObject;
 
-public class ReactionUpdateResponse extends JSONMappedObject {
+public class ReactionUpdateResponse implements MappedObject {
     private String userId;
     private String messageId;
     private String channelId;

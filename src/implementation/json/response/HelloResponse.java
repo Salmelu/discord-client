@@ -1,8 +1,8 @@
-package cz.salmelu.discord.implementation.json.request;
+package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class HelloEvent extends JSONMappedObject {
+public class HelloResponse implements MappedObject {
     private int heartbeatInterval;
 
     public int getHeartbeatInterval() {

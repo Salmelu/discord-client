@@ -1,11 +1,11 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.embed.EmbedObject;
 
 import java.time.LocalDateTime;
 
-public class MessageObject extends JSONMappedObject {
+public class MessageObject implements MappedObject {
     private String id;
     private String channelId;
     private UserObject author;

@@ -5,13 +5,13 @@ import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
 import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
-import java.util.function.Predicate;
 
 public class ServerImpl implements Server {
 
@@ -338,6 +338,7 @@ public class ServerImpl implements Server {
         });
 
         object.put("permission_overwrites", overwritesArray);
-        client.getRequester().postRequest(Endpoint.SERVER + "/" + getId() + "/channels");
+        client.getRequester().postRequest(
+                EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build());
     }
 }

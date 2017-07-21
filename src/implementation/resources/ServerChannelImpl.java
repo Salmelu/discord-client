@@ -3,7 +3,8 @@ package cz.salmelu.discord.implementation.resources;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 
 import java.util.*;
@@ -171,7 +172,8 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         originalObject.setName(newName);
         originalObject.setTopic(newTopic);
         originalObject.setPosition(newPosition);
-        client.getRequester().patchRequest(Endpoint.CHANNEL + "/" + getId(), originalObject.getModifyObject());
+        client.getRequester().patchRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).build(), originalObject.getModifyObject());
     }
 
     @Override
@@ -196,7 +198,8 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         }
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
-        client.getRequester().postRequest(Endpoint.CHANNEL + "/" + id + "/messages", messageObject);
+        client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL).addElement(getId())
+                .addElement("messages").build(), messageObject);
     }
 
     @Override

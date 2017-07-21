@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources.embed;
 
-public class EmbedThumbnailObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class EmbedThumbnailObject implements MappedObject {
     String url;
     String proxyUrl;
     int height;

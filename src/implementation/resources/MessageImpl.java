@@ -6,7 +6,8 @@ import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
-import cz.salmelu.discord.implementation.net.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -37,10 +38,11 @@ public class MessageImpl implements Message {
         this.channel = client.getChannelById(messageObject.getChannelId());
         if(channel == null) {
             JSONObject channelObject = client.getRequester()
-                    .getRequestAsObject(Endpoint.CHANNEL + "/" + messageObject.getChannelId());
+                    .getRequestAsObject(EndpointBuilder.create(Endpoint.CHANNEL)
+                            .addElement(messageObject.getChannelId()).build());
             if(channelObject.getBoolean("is_private")) {
                 PrivateChannelObject privateChannelObject =
-                        PrivateChannelObject.deserialize(channelObject, PrivateChannelObject.class);
+                        client.getSerializer().deserialize(channelObject, PrivateChannelObject.class);
                 UserImpl receiver = client.getUser(privateChannelObject.getRecipient().getId());
                 if(receiver == null) {
                     receiver = new UserImpl(client, privateChannelObject.getRecipient());
@@ -135,74 +137,62 @@ public class MessageImpl implements Message {
 
     @Override
     public void addReaction(Emoji emoji) {
-        try {
-            final Channel channel = getChannel();
-            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
-            if (!channel.isPrivate()) {
-                final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
-                if (!serverChannel.checkPermission(Permission.READ_MESSAGE_HISTORY)) {
-                    throw new PermissionDeniedException("This application cannot access message history of affected channel.");
-                }
-                if (reaction == null) {
-                    if (!serverChannel.checkPermission(Permission.ADD_REACTIONS)) {
-                        throw new PermissionDeniedException("This application cannot add reactions in affected channel.");
-                    }
-                }
+        final Channel channel = getChannel();
+        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
+        if (!channel.isPrivate()) {
+            final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
+            if (!serverChannel.checkPermission(Permission.READ_MESSAGE_HISTORY)) {
+                throw new PermissionDeniedException("This application cannot access message history of affected channel.");
             }
-            client.getRequester().putRequest(new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/" + getId()
-                    + "/reactions/" + emoji.getUnicode() + "/@me").toASCIIString());
             if (reaction == null) {
-                reaction = new ReactionImpl(this, emoji);
-                reactions.put(emoji.getName(), reaction);
-            }
-            else {
-                reaction.increment(true);
+                if (!serverChannel.checkPermission(Permission.ADD_REACTIONS)) {
+                    throw new PermissionDeniedException("This application cannot add reactions in affected channel.");
+                }
             }
         }
-        catch(URISyntaxException e) {
-            throw new RuntimeException(e);
+        client.getRequester().putRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getChannel().getId()).addElement("messages").addElement(getId())
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build());
+        if (reaction == null) {
+            reaction = new ReactionImpl(this, emoji);
+            reactions.put(emoji.getName(), reaction);
+        }
+        else {
+            reaction.increment(true);
         }
     }
 
     @Override
     public void removeReaction(Emoji emoji) {
-        try {
-            ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji)).findFirst().orElse(null);
-            if(reaction == null) {
-                throw new IllegalArgumentException("This message doesn't contain that emoji.");
-            }
-            client.getRequester().deleteRequest(new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/" + getId()
-                    + "/reactions/" + emoji.getUnicode() + "/@me").toASCIIString());
-            reaction.decrement(true);
-            if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji)).findFirst().orElse(null);
+        if(reaction == null) {
+            throw new IllegalArgumentException("This message doesn't contain that emoji.");
         }
-        catch(URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getChannel().getId()).addElement("messages").addElement(getId())
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build());
+        reaction.decrement(true);
+        if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
     }
 
     @Override
     public List<User> getReactions(Emoji emoji) {
-        try {
-            JSONArray rawUsers = client.getRequester().getRequestAsArray(
-                    new URI(Endpoint.CHANNEL + "/" + getChannel().getId() + "/messages/"
-                    + getId() + "/reactions/" + emoji.getUnicode()).toASCIIString());
-            List<User> userList = new ArrayList<>();
-            for (int i = 0; i < rawUsers.length(); i++) {
-                UserObject userObject = UserObject.deserialize(rawUsers.getJSONObject(i), UserObject.class);
-                User user = client.getUser(userObject.getId());
-                if(user == null) {
-                    UserImpl newUser = new UserImpl(client, userObject);
-                    client.addUser(newUser);
-                    user = newUser;
-                }
-                userList.add(user);
+        JSONArray rawUsers = client.getRequester().getRequestAsArray(
+                EndpointBuilder.create(Endpoint.CHANNEL).addElement(getChannel().getId())
+                        .addElement("messages").addElement(getId()).addElement("reactions")
+                        .addElement(emoji.getUnicode()).build());
+        List<User> userList = new ArrayList<>();
+        for (int i = 0; i < rawUsers.length(); i++) {
+            UserObject userObject = client.getSerializer().deserialize(rawUsers.getJSONObject(i), UserObject.class);
+            User user = client.getUser(userObject.getId());
+            if(user == null) {
+                UserImpl newUser = new UserImpl(client, userObject);
+                client.addUser(newUser);
+                user = newUser;
             }
-            return userList;
+            userList.add(user);
         }
-        catch(URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
+        return userList;
     }
 
     public ReactionImpl addReaction0(ReactionUpdateResponse reactionResponse, Emoji emoji) {

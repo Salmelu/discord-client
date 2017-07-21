@@ -1,9 +1,9 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.EmojiObject;
 
-public class ServerEmojiUpdateResponse extends JSONMappedObject {
+public class ServerEmojiUpdateResponse implements MappedObject {
     private String guildId;
     private EmojiObject[] emojis;
 

@@ -58,11 +58,11 @@ public class Dispatcher {
     }
 
     public void ignoreOwnMessages(boolean ignore) {
-        this.ignoreOwnMessages = true;
+        this.ignoreOwnMessages = ignore;
     }
 
     public void ignoreBotMessages(boolean ignore) {
-        this.ignoreBotMessages = true;
+        this.ignoreBotMessages = ignore;
     }
 
     public synchronized void fireNotification(NotifyManager.Callback callback, Object o) {

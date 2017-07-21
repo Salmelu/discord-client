@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-public class RoleObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class RoleObject implements MappedObject {
     private String id;
     private String name;
     private int color;

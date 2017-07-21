@@ -1,4 +1,4 @@
-package cz.salmelu.discord.implementation.net;
+package cz.salmelu.discord.implementation.net.socket;
 
 public final class DiscordSocketMessage {
     public static final int DISPATCH = 0;

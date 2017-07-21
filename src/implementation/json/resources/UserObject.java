@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class UserObject extends JSONMappedObject {
+public class UserObject implements MappedObject {
     private String id;
     private String username;
     private String discriminator;

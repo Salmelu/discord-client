@@ -1,8 +1,8 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-public class MessageDeleteResponse extends JSONMappedObject {
+public class MessageDeleteResponse implements MappedObject {
     private String id;
     private String channelId;
 

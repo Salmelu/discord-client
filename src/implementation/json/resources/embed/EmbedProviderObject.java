@@ -1,6 +1,8 @@
 package cz.salmelu.discord.implementation.json.resources.embed;
 
-public class EmbedProviderObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class EmbedProviderObject implements MappedObject {
     String name;
     String url;
 }

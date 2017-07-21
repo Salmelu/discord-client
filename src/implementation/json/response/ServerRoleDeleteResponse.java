@@ -1,8 +1,9 @@
 package cz.salmelu.discord.implementation.json.response;
 
-import cz.salmelu.discord.implementation.json.JSONMappedObject;
 
-public class ServerRoleDeleteResponse extends JSONMappedObject {
+import cz.salmelu.discord.implementation.json.reflector.MappedObject;
+
+public class ServerRoleDeleteResponse implements MappedObject {
     private String guildId;
     private String roleId;
 
