@@ -127,4 +127,10 @@ public abstract class ChannelBase implements Channel {
         client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("typing").build());
     }
+
+    @Override
+    public void deleteChannel() throws PermissionDeniedException {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getId()).build();
+        client.getRequester().deleteRequest(endpoint);
+    }
 }

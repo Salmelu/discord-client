@@ -10,7 +10,6 @@ public interface Member {
     String getNickname();
     List<Role> getRoles();
 
-
     String getMention();
 
     Server getServer();

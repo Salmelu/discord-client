@@ -40,7 +40,7 @@ public class ClientImpl implements Client {
 
     public void login(Dispatcher dispatcher) {
         final JSONObject gatewayResponse = requester.getRequestAsObject(Endpoint.GATEWAY);
-        final String gateway = gatewayResponse.getString("url") + "?v=5&encoding=json";
+        final String gateway = gatewayResponse.getString("url") + "?v=6&encoding=json";
 
         URI uri;
         try {
@@ -51,7 +51,7 @@ public class ClientImpl implements Client {
             throw new RuntimeException(e);
         }
 
-        socket = new DiscordWebSocket(botToken, serializer, dispatcher, limiter);
+        socket = new DiscordWebSocket(this, botToken, serializer, dispatcher, limiter);
         socket.connect(uri);
     }
 
@@ -68,6 +68,11 @@ public class ClientImpl implements Client {
                 throw e;
             }
         }
+    }
+
+    public void purgeData() {
+        // needed when the connection invalidates, all is reloaded anyway
+        // TODO: clear all data
     }
 
     public void logout() {

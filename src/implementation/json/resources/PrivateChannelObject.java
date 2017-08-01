@@ -5,7 +5,7 @@ import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 public class PrivateChannelObject implements MappedObject {
     private String id;
     private boolean isPrivate;
-    private UserObject recipient;
+    private UserObject[] recipients;
     private String lastMessageId;
 
     public String getLastMessageId() {
@@ -32,11 +32,11 @@ public class PrivateChannelObject implements MappedObject {
         isPrivate = aPrivate;
     }
 
-    public UserObject getRecipient() {
-        return recipient;
+    public UserObject[] getRecipients() {
+        return recipients;
     }
 
-    public void setRecipient(UserObject recipient) {
-        this.recipient = recipient;
+    public void setRecipients(UserObject[] recipients) {
+        this.recipients = recipients;
     }
 }

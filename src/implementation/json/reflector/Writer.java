@@ -2,10 +2,9 @@ package cz.salmelu.discord.implementation.json.reflector;
 
 import org.json.JSONObject;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
@@ -23,9 +22,11 @@ class Writer {
         try {
             if(type.isArray()) {
                 final Object[] results = (Object[]) method.invoke(written);
-                final Collection<Object> strings = Arrays.stream(results).map(o
-                        -> writeSingleField(written, type.getComponentType())).collect(Collectors.toList());
-                json.put(fieldName, strings);
+                if(results != null) {
+                    final Collection<Object> strings = Arrays.stream(results).map(o
+                            -> writeSingleField(written, type.getComponentType())).collect(Collectors.toList());
+                    json.put(fieldName, strings);
+                }
             }
             else {
                 final Object result = method.invoke(written);
@@ -68,7 +69,7 @@ class Writer {
                 return written.toString();
             }
         }
-        else if(type.equals(LocalDateTime.class)) {
+        else if(type.equals(OffsetDateTime.class)) {
             return written.toString();
         }
         else if(MappedObject.class.isAssignableFrom(type)) {

@@ -114,6 +114,7 @@ public class NotifyManagerImpl implements NotifyManager {
             notification.handle = new NotificationHandleImpl(++handleUID);
             notificationQueue.add(notification);
             notificationMap.put(notification.handle, notification);
+            logger.debug("Added a new notification scheduled at " + when + ".");
             queueCondition.signal();
             return notification.handle;
         }
@@ -129,6 +130,7 @@ public class NotifyManagerImpl implements NotifyManager {
             final Notification notification = notificationMap.get(handle);
             if(notification != null) {
                 notificationQueue.remove(notification);
+                logger.debug("Removed a notification.");
             }
         }
         finally {
@@ -141,6 +143,7 @@ public class NotifyManagerImpl implements NotifyManager {
         while(running) {
             final long currentTime = System.currentTimeMillis();
             final List<Notification> processNotification = new ArrayList<>();
+            logger.debug("Running notification loop.");
 
             // Take everything needed from queue
             queueLock.lock();
@@ -151,18 +154,20 @@ public class NotifyManagerImpl implements NotifyManager {
                 notificationMap.remove(next.handle);
                 next = notificationQueue.peek();
             }
-            sleepTime = 60 * 60 * 1000; // 1 hour
-            if(next != null && next.timestamp - currentTime < 60 * 60 * 1000) {
-                sleepTime = (int) (next.timestamp - currentTime);
-            }
             queueLock.unlock();
 
+            logger.debug("Found " + processNotification.size() + " notifications.");
             // Process notifications
             processNotification.forEach(notification ->
                     dispatcher.fireNotification(notification.callback, notification.object));
 
             // Schedule next
             queueLock.lock();
+            Notification nextSchedule = notificationQueue.peek();
+            sleepTime = 60 * 60 * 1000; // 1 hour
+            if(nextSchedule != null && nextSchedule.timestamp - currentTime < 60 * 60 * 1000) {
+                sleepTime = (int) (nextSchedule.timestamp - currentTime);
+            }
             try {
                 queueCondition.await(sleepTime, TimeUnit.MILLISECONDS);
             }

@@ -7,9 +7,8 @@ public class ChannelObject implements MappedObject {
     private String id;
     private String guildId;
     private String name;
-    private ChannelType type;
+    private int type;
     private int position;
-    private boolean isPrivate;
     private PermissionOverwriteObject[] permissionOverwrites;
     private String topic;
     private String lastMessageId;
@@ -40,11 +39,11 @@ public class ChannelObject implements MappedObject {
         this.name = name;
     }
 
-    public ChannelType getType() {
+    public int getType() {
         return type;
     }
 
-    public void setType(ChannelType type) {
+    public void setType(int type) {
         this.type = type;
     }
 
@@ -54,14 +53,6 @@ public class ChannelObject implements MappedObject {
 
     public void setPosition(int position) {
         this.position = position;
-    }
-
-    public boolean isPrivate() {
-        return isPrivate;
-    }
-
-    public void setPrivate(boolean aPrivate) {
-        isPrivate = aPrivate;
     }
 
     public PermissionOverwriteObject[] getPermissionOverwrites() {

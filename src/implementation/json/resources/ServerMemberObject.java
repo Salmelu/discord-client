@@ -2,13 +2,13 @@ package cz.salmelu.discord.implementation.json.resources;
 
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-import java.util.Date;
+import java.time.OffsetDateTime;
 
 public class ServerMemberObject implements MappedObject {
     private UserObject user;
     private String nickname;
     private String[] roles;
-    private Date joinedAt;
+    private OffsetDateTime joinedAt;
     private boolean deaf;
     private boolean muted;
 
@@ -36,11 +36,11 @@ public class ServerMemberObject implements MappedObject {
         this.roles = roles;
     }
 
-    public Date getJoinedAt() {
+    public OffsetDateTime getJoinedAt() {
         return joinedAt;
     }
 
-    public void setJoinedAt(Date joinedAt) {
+    public void setJoinedAt(OffsetDateTime joinedAt) {
         this.joinedAt = joinedAt;
     }
 

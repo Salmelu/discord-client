@@ -1,5 +1,7 @@
 package cz.salmelu.discord.resources;
 
+import java.util.List;
+
 public interface PrivateChannel extends Channel {
-    User getUser();
+    List<User> getUsers();
 }

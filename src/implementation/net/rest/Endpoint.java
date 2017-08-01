@@ -39,17 +39,22 @@ public class Endpoint {
         this.suffix = sb.toString();
 
         this.params = params == null ? new HashMap<>() : params;
-        StringBuilder pb = new StringBuilder();
-        for(Map.Entry<String, String> param : params.entrySet()) {
-            if(pb.length() > 0) pb.append('&');
-            pb.append(param.getKey()).append('=').append(param.getValue());
+        if(params != null) {
+            StringBuilder pb = new StringBuilder();
+            for (Map.Entry<String, String> param : params.entrySet()) {
+                if (pb.length() > 0) pb.append('&');
+                pb.append(param.getKey()).append('=').append(param.getValue());
+            }
+            tail = pb.toString();
         }
-        tail = pb.toString();
+        else {
+            tail = "";
+        }
 
         StringBuilder ab = new StringBuilder(100);
         ab.append(this.base);
         if(elements.size() > 1) ab.append('/').append(this.suffix);
-        if(params.size() > 0) ab.append('?').append(tail);
+        if(params != null && params.size() > 0) ab.append('?').append(tail);
         this.address = ab.toString();
     }
 

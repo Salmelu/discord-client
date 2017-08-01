@@ -74,7 +74,8 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
      * Calculated permissions are saved in a local field to avoid recalculating everytime
      */
     public void calculatePermissions() {
-        if(originalObject.getPermissionOverwrites().length == 0) {
+        if(originalObject.getPermissionOverwrites() == null
+                || originalObject.getPermissionOverwrites().length == 0) {
             currentPermissions = EnumSet.copyOf(server.getPermissions());
             return;
         }
@@ -208,5 +209,13 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
             throw new PermissionDeniedException("This application doesn't have the permission to read message history in this channel.");
         }
         return super.getMessage(id);
+    }
+
+    @Override
+    public void deleteChannel() {
+        if(!checkPermission(Permission.MANAGE_CHANNELS)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to delete this channel.");
+        }
+        super.deleteChannel();
     }
 }

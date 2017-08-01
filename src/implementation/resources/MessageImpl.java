@@ -16,9 +16,7 @@ import org.slf4j.LoggerFactory;
 import org.slf4j.Marker;
 import org.slf4j.MarkerFactory;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,15 +38,26 @@ public class MessageImpl implements Message {
             JSONObject channelObject = client.getRequester()
                     .getRequestAsObject(EndpointBuilder.create(Endpoint.CHANNEL)
                             .addElement(messageObject.getChannelId()).build());
-            if(channelObject.getBoolean("is_private")) {
+            final int type = channelObject.getInt("type");
+            if(type == Channel.ChannelType.PRIVATE
+                    || type == Channel.ChannelType.PRIVATE_GROUP) {
                 PrivateChannelObject privateChannelObject =
                         client.getSerializer().deserialize(channelObject, PrivateChannelObject.class);
-                UserImpl receiver = client.getUser(privateChannelObject.getRecipient().getId());
-                if(receiver == null) {
-                    receiver = new UserImpl(client, privateChannelObject.getRecipient());
-                    client.addUser(receiver);
+                UserObject[] recipients = privateChannelObject.getRecipients();
+                List<User> receivers = new ArrayList<>();
+                if(recipients != null) {
+                    for (UserObject recipient : recipients) {
+                        UserImpl receiver = client.getUser(recipient.getId());
+                        if (receiver == null) {
+                            receiver = new UserImpl(client, recipient);
+                            client.addUser(receiver);
+                        }
+                        receivers.add(receiver);
+                    }
                 }
-                PrivateChannelImpl channel = new PrivateChannelImpl(client, privateChannelObject, receiver);
+                final PrivateChannelImpl channel = new PrivateChannelImpl(client, privateChannelObject, receivers);
+                client.addChannel(channel);
+                this.channel = channel;
             }
             else {
                 logger.error(marker, "Received message from not private channel, which is not stored.");
@@ -96,12 +105,12 @@ public class MessageImpl implements Message {
     }
 
     @Override
-    public LocalDateTime getSentTime() {
+    public OffsetDateTime getSentTime() {
         return originalObject.getTimestamp();
     }
 
     @Override
-    public LocalDateTime getEditedTime() {
+    public OffsetDateTime getEditedTime() {
         return originalObject.getEditedTimestamp();
     }
 

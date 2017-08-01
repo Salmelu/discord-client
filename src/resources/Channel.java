@@ -29,4 +29,13 @@ public interface Channel {
     ServerChannel toServerChannel();
     PrivateChannel toPrivateChannel();
 
+    void deleteChannel();
+
+    class ChannelType {
+        public static final int SERVER_TEXT = 0;
+        public static final int PRIVATE = 1;
+        public static final int SERVER_VOICE = 2;
+        public static final int PRIVATE_GROUP = 3;
+        public static final int SERVER_CATEGORY = 4;
+    }
 }

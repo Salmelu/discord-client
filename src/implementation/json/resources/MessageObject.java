@@ -3,15 +3,16 @@ package cz.salmelu.discord.implementation.json.resources;
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.embed.EmbedObject;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class MessageObject implements MappedObject {
     private String id;
     private String channelId;
+    private int type;
     private UserObject author;
     private String content;
-    private LocalDateTime timestamp;
-    private LocalDateTime editedTimestamp;
+    private OffsetDateTime timestamp;
+    private OffsetDateTime editedTimestamp;
     private boolean tts;
     private boolean mentionEveryone;
     private UserObject[] mentions;
@@ -55,19 +56,19 @@ public class MessageObject implements MappedObject {
         this.content = content;
     }
 
-    public LocalDateTime getTimestamp() {
+    public OffsetDateTime getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(LocalDateTime timestamp) {
+    public void setTimestamp(OffsetDateTime timestamp) {
         this.timestamp = timestamp;
     }
 
-    public LocalDateTime getEditedTimestamp() {
+    public OffsetDateTime getEditedTimestamp() {
         return editedTimestamp;
     }
 
-    public void setEditedTimestamp(LocalDateTime editedTimestamp) {
+    public void setEditedTimestamp(OffsetDateTime editedTimestamp) {
         this.editedTimestamp = editedTimestamp;
     }
 
@@ -149,5 +150,13 @@ public class MessageObject implements MappedObject {
 
     public void setWebhookId(String webhookId) {
         this.webhookId = webhookId;
+    }
+
+    public int getType() {
+        return type;
+    }
+
+    public void setType(int type) {
+        this.type = type;
     }
 }

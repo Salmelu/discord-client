@@ -94,7 +94,7 @@ public class DiscordHttpRequester {
     private HttpResponse<String> getRequestImpl(Endpoint endpoint) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending GET request to " + endpoint);
+        logger.debug("Sending GET request to " + endpoint.getAddress());
 
         GetRequest request = Unirest.get(endpoint.getAddress());
         fillHeaders(request);
@@ -143,7 +143,7 @@ public class DiscordHttpRequester {
     public synchronized void postRequest(Endpoint endpoint) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug("Sending empty POST request to " + endpoint);
+        logger.debug("Sending empty POST request to " + endpoint.getAddress());
         HttpRequestWithBody request = Unirest.post(endpoint.getAddress());
         fillHeaders(request);
         fireRequestImpl(endpoint, request);
@@ -152,7 +152,7 @@ public class DiscordHttpRequester {
     public synchronized void patchRequest(Endpoint endpoint, JSONObject object) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug("Sending PATCH request to " + endpoint);
+        logger.debug("Sending PATCH request to " + endpoint.getAddress());
         HttpRequestWithBody request = Unirest.patch(endpoint.getAddress());
         fillHeaders(request);
         request.body(object);
@@ -163,7 +163,7 @@ public class DiscordHttpRequester {
         if(stopped) return;
         // TODO: toASCIIstring()
         waitForLimit(endpoint);
-        logger.debug("Sending PUT request to " + endpoint);
+        logger.debug("Sending PUT request to " + endpoint.getAddress());
         HttpRequestWithBody request = Unirest.put(endpoint.getAddress());
         fillHeaders(request);
         fireRequestImpl(endpoint, request);
@@ -172,7 +172,7 @@ public class DiscordHttpRequester {
     public synchronized void deleteRequest(Endpoint endpoint) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug("Sending DELETE request to " + endpoint);
+        logger.debug("Sending DELETE request to " + endpoint.getAddress());
         HttpRequestWithBody request = Unirest.delete(endpoint.getAddress());
         fillHeaders(request);
         fireRequestImpl(endpoint, request);
@@ -181,7 +181,7 @@ public class DiscordHttpRequester {
     public synchronized void postRequest(Endpoint endpoint, JSONObject object) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug("Sending POST request to " + endpoint + ": " + object.toString());
+        logger.debug("Sending POST request to " + endpoint.getAddress() + ": " + object.toString());
         HttpRequestWithBody request = Unirest.post(endpoint.getAddress());
         fillHeaders(request);
         request.body(object);

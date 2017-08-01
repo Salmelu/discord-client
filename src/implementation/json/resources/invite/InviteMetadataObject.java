@@ -3,8 +3,7 @@ package cz.salmelu.discord.implementation.json.resources.invite;
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.time.OffsetDateTime;
 
 public class InviteMetadataObject implements MappedObject {
     UserObject inviter;
@@ -12,6 +11,6 @@ public class InviteMetadataObject implements MappedObject {
     int maxUses;
     int maxAge;
     boolean temporary;
-    LocalDateTime created;
+    OffsetDateTime created;
     boolean revoked;
 }

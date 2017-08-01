@@ -5,7 +5,7 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Method;
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
@@ -76,8 +76,8 @@ class Reader {
             }).findFirst();
             return optional.orElse(null);
         }
-        else if (type.equals(LocalDateTime.class)) {
-            return LocalDateTime.parse(value.toString());
+        else if (type.equals(OffsetDateTime.class)) {
+            return OffsetDateTime.parse(value.toString());
         }
         else if (MappedObject.class.isAssignableFrom(type)) {
             return serializer.deserialize((JSONObject) value, type);

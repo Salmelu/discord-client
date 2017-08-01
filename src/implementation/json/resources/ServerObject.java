@@ -2,7 +2,7 @@ package cz.salmelu.discord.implementation.json.resources;
 
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 public class ServerObject implements MappedObject {
     private String id;
@@ -25,7 +25,7 @@ public class ServerObject implements MappedObject {
     private String[] features;
     private int mfaLevel;
 
-    private LocalDateTime joinedAt;
+    private OffsetDateTime joinedAt;
     private boolean large;
     private boolean unavailable;
     private int memberCount;
@@ -154,11 +154,11 @@ public class ServerObject implements MappedObject {
         this.mfaLevel = mfaLevel;
     }
 
-    public LocalDateTime getJoinedAt() {
+    public OffsetDateTime getJoinedAt() {
         return joinedAt;
     }
 
-    public void setJoinedAt(LocalDateTime joinedAt) {
+    public void setJoinedAt(OffsetDateTime joinedAt) {
         this.joinedAt = joinedAt;
     }
 

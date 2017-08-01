@@ -8,6 +8,7 @@ import cz.salmelu.discord.implementation.json.request.*;
 import cz.salmelu.discord.implementation.json.response.*;
 
 import cz.salmelu.discord.implementation.net.RateLimiter;
+import cz.salmelu.discord.implementation.resources.ClientImpl;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
@@ -31,6 +32,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
     private static final String LIB_VERSION = "0.0.1";
     private String token;
 
+    private ClientImpl discord;
     private WebSocketClient client;
     private Session session = null;
     private HeartbeatGenerator heartbeatGenerator = new HeartbeatGenerator(this);
@@ -50,7 +52,8 @@ public class DiscordWebSocket extends WebSocketAdapter {
     private int sequenceNumber = -1;
     private String sessionId = null;
 
-    public DiscordWebSocket(String token, Serializer serializer, Dispatcher dispatcher, RateLimiter limiter) {
+    public DiscordWebSocket(ClientImpl client, String token, Serializer serializer, Dispatcher dispatcher, RateLimiter limiter) {
+        this.discord = client;
         this.token = token;
         this.dispatcher = dispatcher;
         this.limiter = limiter;
@@ -272,8 +275,12 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     final HelloResponse event = serializer.deserialize(message.getJSONObject("d"), HelloResponse.class);
                     heartbeatGenerator.setInterval(event.getHeartbeatInterval());
                     heartbeatGenerator.resume(true);
-                    if (state == DiscordWebSocketState.RECONNECTING) resume();
-                    else identify();
+                    if (state == DiscordWebSocketState.RECONNECTING) {
+                        resume();
+                    }
+                    else {
+                        identify();
+                    }
                     break;
                 case DiscordSocketMessage.RECONNECT:
                     state = DiscordWebSocketState.DISCONNECTED;
@@ -282,14 +289,20 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 case DiscordSocketMessage.INVALID_SESSION:
                     logger.warn("Invalid session event received.");
                     final boolean resumable = message.getBoolean("d");
+
                     try {
                         Thread.sleep(3500);
                     }
                     catch(InterruptedException e) {
                         logger.warn("Interrupted", e);
                     }
-                    if(resumable) resume();
-                    else identify();
+                    if(resumable) {
+                        resume();
+                    }
+                    else {
+                        discord.purgeData();
+                        identify();
+                    }
                     break;
                 default:
                     logger.warn("Invalid message type received.");
@@ -341,7 +354,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         game.setName(gameName);
 
         final StatusUpdateRequest request = new StatusUpdateRequest();
-        request.setIdle(idle);
+        request.setSince(idle);
         request.setGame(game);
         sendMessage(DiscordSocketMessage.STATUS_UPDATE, request);
     }

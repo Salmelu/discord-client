@@ -5,6 +5,7 @@ import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.json.resources.ServerObject;
 import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
+import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
@@ -295,12 +296,31 @@ public class ServerImpl implements Server {
 
     @Override
     public Member getMemberById(String id) {
-        return membersById.get(id);
+        Member member = membersById.get(id);
+        if(member == null) {
+            // Let's try to get it remotely
+            try {
+                final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                        .addElement(getId())
+                        .addElement("members")
+                        .addElement(id)
+                        .build();
+                final JSONObject jsonObject = getClient().getRequester().getRequestAsObject(endpoint);
+                final ServerMemberObject memberObject = client.getSerializer()
+                        .deserialize(jsonObject, ServerMemberObject.class);
+                return addMember(memberObject);
+            }
+            catch(DiscordRequestException e) {
+                // No such user was found
+                return null;
+            }
+        }
+        return member;
     }
 
     @Override
     public Member getMember(User user) {
-        return membersById.get(user.getId());
+        return getMemberById(user.getId());
     }
 
     @Override
@@ -311,7 +331,7 @@ public class ServerImpl implements Server {
     @Override
     public void createTextChannel(String name, List<PermissionOverwrite> overwrites) {
         final JSONObject object = new JSONObject();
-        object.put("name", name);
+        object.put("name", Channel.ChannelType.SERVER_TEXT);
         object.put("type", "text");
         createChannelCommon(object, overwrites);
     }
@@ -320,7 +340,7 @@ public class ServerImpl implements Server {
     public void createVoiceChannel(String name, int bitrate, int userLimit, List<PermissionOverwrite> overwrites) {
         final JSONObject object = new JSONObject();
         object.put("name", name);
-        object.put("type", "voice");
+        object.put("type", Channel.ChannelType.SERVER_VOICE);
         object.put("bitrate", bitrate);
         object.put("user_limit", userLimit);
         createChannelCommon(object, overwrites);

@@ -6,17 +6,20 @@ import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 
+import java.util.Collections;
+import java.util.List;
+
 public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
 
     private final String id;
     private final PrivateChannelObject originalObject;
-    private final User user;
+    private final List<User> users;
 
-    public PrivateChannelImpl(ClientImpl client, PrivateChannelObject channelObject, User user) {
+    public PrivateChannelImpl(ClientImpl client, PrivateChannelObject channelObject, List<User> users) {
         this.id = channelObject.getId();
         this.originalObject = channelObject;
         this.client = client;
-        this.user = user;
+        this.users = users;
     }
 
     @Override
@@ -62,7 +65,7 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
     }
 
     @Override
-    public User getUser() {
-        return user;
+    public List<User> getUsers() {
+        return Collections.unmodifiableList(users);
     }
 }

@@ -13,9 +13,7 @@ import cz.salmelu.discord.resources.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.*;
@@ -80,13 +78,23 @@ public class Dispatcher {
     }
 
     public void onChannelCreate(PrivateChannelObject channelObject) {
-        User user = client.getUser(channelObject.getRecipient().getId());
-        if(user == null) {
-            UserImpl newUser = new UserImpl(client, channelObject.getRecipient());
-            client.addUser(newUser);
-            user = newUser;
+        // TODO: fix me
+        List<User> users = new ArrayList<>();
+        UserObject[] userObjects = channelObject.getRecipients();
+        if(userObjects != null) {
+            for(UserObject userObject : userObjects) {
+                User user = client.getUser(userObject.getId());
+                if (user == null) {
+                    UserImpl newUser = new UserImpl(client, userObject);
+                    client.addUser(newUser);
+                    users.add(newUser);
+                }
+                else {
+                    users.add(user);
+                }
+            }
         }
-        final PrivateChannelImpl channel = new PrivateChannelImpl(client, channelObject, user);
+        final PrivateChannelImpl channel = new PrivateChannelImpl(client, channelObject, users);
         client.addChannel(channel);
         // TODO: fire onPrivateChannelCreate
     }

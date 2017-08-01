@@ -2,7 +2,7 @@ package cz.salmelu.discord.resources;
 
 import cz.salmelu.discord.Emoji;
 
-import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 
@@ -19,8 +19,8 @@ public interface Message {
     List<User> getReactions(Emoji emoji);
 
     User getAuthor();
-    LocalDateTime getSentTime();
-    LocalDateTime getEditedTime();
+    OffsetDateTime getSentTime();
+    OffsetDateTime getEditedTime();
     boolean isTTS();
 
     boolean isMentionAtEveryone();
