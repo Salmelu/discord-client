@@ -276,14 +276,17 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     heartbeatGenerator.setInterval(event.getHeartbeatInterval());
                     heartbeatGenerator.resume(true);
                     if (state == DiscordWebSocketState.RECONNECTING) {
+                        logger.debug("Resuming connection from previous state.");
                         resume();
                     }
                     else {
+                        logger.debug("Sending identify request.");
                         identify();
                     }
                     break;
                 case DiscordSocketMessage.RECONNECT:
                     state = DiscordWebSocketState.DISCONNECTED;
+                    logger.debug("Clearing connection and trying again from scratch.");
                     connect();
                     break;
                 case DiscordSocketMessage.INVALID_SESSION:
@@ -297,10 +300,12 @@ public class DiscordWebSocket extends WebSocketAdapter {
                         logger.warn("Interrupted", e);
                     }
                     if(resumable) {
+                        logger.debug("Attempting to resume connection from previous state.");
                         resume();
                     }
                     else {
                         discord.purgeData();
+                        logger.debug("Sending identify request.");
                         identify();
                     }
                     break;
@@ -323,7 +328,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
     }
 
     private void resume() {
-        if(state != DiscordWebSocketState.RECONNECTING) return;
+        if(state != DiscordWebSocketState.RECONNECTING && state != DiscordWebSocketState.CONNECTING) return;
         state = DiscordWebSocketState.RESUMING;
 
         final ResumeRequest request = new ResumeRequest();

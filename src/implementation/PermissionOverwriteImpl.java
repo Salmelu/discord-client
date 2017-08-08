@@ -13,7 +13,6 @@ public class PermissionOverwriteImpl implements PermissionOverwrite {
     private EnumSet<Permission> allow;
     private EnumSet<Permission> deny;
 
-
     public PermissionOverwriteImpl(PermissionOverwriteType type, String id) {
         this.type = type;
         this.id = id;

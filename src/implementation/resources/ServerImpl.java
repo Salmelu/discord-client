@@ -1,9 +1,8 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.implementation.json.resources.PermissionOverwriteObject;
-import cz.salmelu.discord.implementation.json.resources.RoleObject;
-import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
-import cz.salmelu.discord.implementation.json.resources.ServerObject;
+import cz.salmelu.discord.NameHelper;
+import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.implementation.json.resources.*;
 import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
 import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
@@ -255,6 +254,13 @@ public class ServerImpl implements Server {
     }
 
     @Override
+    public void leave() {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.USER).addElement("@me")
+                                      .addElement("guilds").addElement(getId()).build();
+        getClient().getRequester().deleteRequest(endpoint);
+    }
+
+    @Override
     public List<ServerChannel> getChannels() {
         return Collections.unmodifiableList(channelList);
     }
@@ -270,7 +276,7 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public RoleImpl getEveryoneRole() {
+    public Role getEveryoneRole() {
         return everyoneRole;
     }
 
@@ -287,6 +293,11 @@ public class ServerImpl implements Server {
     @Override
     public Role getRoleByName(String name) {
         return rolesByName.get(name);
+    }
+
+    @Override
+    public void loadAllMembers() {
+        // TODO: load all server members into the bot
     }
 
     @Override
@@ -329,7 +340,83 @@ public class ServerImpl implements Server {
     }
 
     @Override
+    public void kickMember(Member member) {
+        if(!getPermissions().contains(Permission.KICK_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot kick members on this server.");
+        }
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("members").addElement(member.getId()).build();
+        client.getRequester().deleteRequest(endpoint);
+    }
+
+    @Override
+    public List<User> getBannedUsers() {
+        if(!getPermissions().contains(Permission.BAN_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot access banlist of this server.");
+        }
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("bans").build();
+        JSONArray array = client.getRequester().getRequestAsArray(endpoint);
+        List<User> userList = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject jsonObject = array.getJSONObject(i);
+            UserObject userObject = client.getSerializer().deserialize(jsonObject, UserObject.class);
+            UserImpl user = client.getUser(userObject.getId());
+            if(user == null) {
+                user = new UserImpl(client, userObject);
+                client.addUser(user);
+            }
+            userList.add(user);
+        }
+        return userList;
+    }
+
+    @Override
+    public void banMember(Member member) {
+        banUser(member.getUser());
+    }
+
+    @Override
+    public void banUser(User user) {
+        if(!getPermissions().contains(Permission.BAN_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot ban members on this server.");
+        }
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("bans").addElement(user.getId()).build();
+        client.getRequester().putRequest(endpoint);
+    }
+
+    @Override
+    public void unbanUser(User user) {
+        if(!getPermissions().contains(Permission.BAN_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot unban members on this server.");
+        }
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("bans").addElement(user.getId()).build();
+        client.getRequester().deleteRequest(endpoint);
+    }
+
+    @Override
+    public void changeMyNickname(String nickname) {
+        nickname = nickname.trim();
+        if(!NameHelper.validateName(nickname)) {
+            throw new IllegalArgumentException("Invalid nickname requested.");
+        }
+        if(!getPermissions().contains(Permission.CHANGE_NICKNAME)) {
+            throw new PermissionDeniedException("This application cannot change nicknames on this server.");
+        }
+        JSONObject request = new JSONObject();
+        request.put("nick", nickname);
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getId())
+                .addElement("members").addElement("@me").addElement("nick").build();
+        client.getRequester().patchRequest(endpoint, request);
+    }
+
+    @Override
     public void createTextChannel(String name, List<PermissionOverwrite> overwrites) {
+        if(!getPermissions().contains(Permission.MANAGE_CHANNELS)) {
+            throw new PermissionDeniedException("This application cannot create channels on this server.");
+        }
         final JSONObject object = new JSONObject();
         object.put("name", Channel.ChannelType.SERVER_TEXT);
         object.put("type", "text");
@@ -338,6 +425,9 @@ public class ServerImpl implements Server {
 
     @Override
     public void createVoiceChannel(String name, int bitrate, int userLimit, List<PermissionOverwrite> overwrites) {
+        if(!getPermissions().contains(Permission.MANAGE_CHANNELS)) {
+            throw new PermissionDeniedException("This application cannot create channels on this server.");
+        }
         final JSONObject object = new JSONObject();
         object.put("name", name);
         object.put("type", Channel.ChannelType.SERVER_VOICE);
@@ -360,5 +450,108 @@ public class ServerImpl implements Server {
         object.put("permission_overwrites", overwritesArray);
         client.getRequester().postRequest(
                 EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build());
+    }
+
+    @Override
+    public void createRole(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
+        if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application cannot create roles on this server.");
+        }
+        if(name == null) {
+            throw new IllegalArgumentException("Role name must be a valid string.");
+        }
+
+        long permissionBits = 0;
+        if(permissions != null) {
+            for(Permission p : permissions) {
+                permissionBits |= p.getValue();
+            }
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("name", name);
+        jsonObject.put("permissions", permissionBits);
+        jsonObject.put("color", color);
+        jsonObject.put("hoist", separate);
+        jsonObject.put("mentionable", mentionable);
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("roles").build();
+        client.getRequester().postRequest(endpoint, jsonObject);
+    }
+
+    @Override
+    public void updateRole(Role role, String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
+        if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application cannot manage roles on this server.");
+        }
+        if(!rolesById.containsKey(role.getId())) {
+            throw new IllegalArgumentException("The updated role is not from this server.");
+        }
+        if(name == null) {
+            throw new IllegalArgumentException("Role name must be a valid string.");
+        }
+
+        long permissionBits = 0;
+        if(permissions != null) {
+            for(Permission p : permissions) {
+                permissionBits |= p.getValue();
+            }
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("name", name);
+        jsonObject.put("permissions", permissionBits);
+        jsonObject.put("color", color);
+        jsonObject.put("hoist", separate);
+        jsonObject.put("mentionable", mentionable);
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("roles").build();
+        client.getRequester().patchRequest(endpoint, jsonObject);
+    }
+
+    @Override
+    public void deleteRole(Role role) {
+        if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application cannot delete roles on this server.");
+        }
+        if(!rolesById.containsKey(role.getId())) {
+            throw new IllegalArgumentException("The deleted role is not from this server.");
+        }
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("roles").addElement(role.getId()).build();
+        client.getRequester().deleteRequest(endpoint);
+    }
+
+    @Override
+    public int getPruneMembersCount(int days) {
+        if(days <= 0) {
+            throw new IllegalArgumentException("The number of days must be a positive number.");
+        }
+        if(!getPermissions().contains(Permission.KICK_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot kick members on this server.");
+        }
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("prune").addParam("days", String.valueOf(days)).build();
+        JSONObject result = client.getRequester().getRequestAsObject(endpoint);
+        return result.getInt("pruned");
+    }
+
+    @Override
+    public int pruneMembers(int days) {
+        if(days <= 0) {
+            throw new IllegalArgumentException("The number of days must be a positive number.");
+        }
+        if(!getPermissions().contains(Permission.KICK_MEMBERS)) {
+            throw new PermissionDeniedException("This application cannot kick members on this server.");
+        }
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
+                .addElement(getId()).addElement("prune").addParam("days", String.valueOf(days)).build();
+        JSONObject result = client.getRequester().postRequestAsObject(endpoint, null);
+        return result.getInt("pruned");
     }
 }

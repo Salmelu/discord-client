@@ -5,4 +5,6 @@ public interface User {
     String getName();
     String getDiscriminator();
     String getMention();
+
+    PrivateChannel createPrivateChannel();
 }

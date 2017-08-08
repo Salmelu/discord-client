@@ -3,6 +3,7 @@ package cz.salmelu.discord.implementation.resources;
 import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.resources.Permission;
 import cz.salmelu.discord.resources.Role;
+import cz.salmelu.discord.resources.Server;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -45,6 +46,11 @@ public class RoleImpl implements Role {
     @Override
     public String getName() {
         return originalObject.getName();
+    }
+
+    @Override
+    public Server getServer() {
+        return server;
     }
 
     @Override

@@ -3,9 +3,12 @@ package cz.salmelu.discord.implementation.resources;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
+import cz.salmelu.discord.implementation.json.resources.PermissionOverwriteObject;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -81,7 +84,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         }
 
         final long[] permissionValues = {0, 0, 0, 0, 0, 0};
-        final RoleImpl everyoneRole = server.getEveryoneRole();
+        final RoleImpl everyoneRole = (RoleImpl) server.getEveryoneRole();
         final MemberImpl me = server.getMe();
         final List<String> roleIds = me.getRoles().stream().map(Role::getId).collect(Collectors.toList());
 
@@ -134,6 +137,11 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
+    public boolean isVoice() {
+        return originalObject.getType() == ChannelType.SERVER_VOICE;
+    }
+
+    @Override
     public int getPosition() {
         return originalObject.getPosition();
     }
@@ -145,36 +153,110 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public void changeName(String newName) {
-        editChannel(newName, getTopic(), getPosition());
+        editChannelCommon(newName, null, -1, -1, -1);
     }
 
     @Override
     public void changeTopic(String newTopic) {
-        editChannel(getName(), newTopic, getPosition());
-
+        if(originalObject.getType() != ChannelType.SERVER_TEXT) {
+            throw new PermissionDeniedException("You can only set topic in text channels.");
+        }
+        editChannelCommon(null, newTopic, -1, -1, -1);
     }
 
     @Override
     public void changePosition(int newPosition) {
-        editChannel(getName(), getTopic(), newPosition);
+        editChannelCommon(null, null, newPosition, -1, -1);
     }
 
     @Override
-    public void editChannel(String newName, String newTopic, int newPosition) {
+    public void changeBitrate(int newBitRate) throws IllegalArgumentException, PermissionDeniedException {
+        if(originalObject.getType() != ChannelType.SERVER_VOICE) {
+            throw new PermissionDeniedException("You can only set bitrate in voice channels.");
+        }
+        editChannelCommon(null, null, -1, newBitRate, -1);
+    }
+
+    @Override
+    public void changeUserLimit(int newUserLimit) throws IllegalArgumentException, PermissionDeniedException {
+        if(originalObject.getType() != ChannelType.SERVER_VOICE) {
+            throw new PermissionDeniedException("You can only set user limit in voice channels.");
+        }
+        editChannelCommon(null, null, -1, -1, newUserLimit);
+    }
+
+    @Override
+    public void editTextChannel(String newName, String newTopic, int newPosition) {
+        if(originalObject.getType() != ChannelType.SERVER_TEXT) {
+            throw new PermissionDeniedException("This channel is not a text channel.");
+        }
+        editChannelCommon(newName, newTopic, newPosition, -1, -1);
+    }
+
+    @Override
+    public void editVoiceChannel(String newName, int newPosition, int newBitrate, int newUserLimit) {
+        if(originalObject.getType() != ChannelType.SERVER_VOICE) {
+            throw new PermissionDeniedException("This channel is not a voice channel.");
+        }
+        editChannelCommon(newName, null, newPosition, newBitrate, newUserLimit);
+    }
+
+    private void editChannelCommon(String name, String topic, int position, int bitrate, int userLimit) {
         if(!checkPermission(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application doesn't have the permission to edit this channel.");
         }
-        if(newName.length() < 2 || newName.length() > 100) {
+        if(name != null && (name.length() < 2 || name.length() > 100)) {
             throw new IllegalArgumentException("The channel name must be between 2 and 100 characters long.");
         }
-        if(newTopic.length() > 1024) {
+        if(topic != null && (topic.length() > 1024)) {
             throw new IllegalArgumentException("Topic can't be longer than 1024 characters.");
         }
-        originalObject.setName(newName);
-        originalObject.setTopic(newTopic);
-        originalObject.setPosition(newPosition);
+        if(position < -1) {
+            throw new IllegalArgumentException("Position must be a positive number.");
+        }
+        if(bitrate != -1 && (bitrate < 8000 || bitrate > 96000)) {
+            throw new IllegalArgumentException("Channel bitrate must be between 8000 and 96000.");
+        }
+        if(userLimit < -1 || userLimit > 99) {
+            throw new IllegalArgumentException("User limit must be between 0 and 99.");
+        }
+        if(name != null) originalObject.setName(name);
+        if(topic != null) originalObject.setTopic(topic);
+        if(position != -1) originalObject.setPosition(position);
+        if(bitrate != -1) originalObject.setBitrate(bitrate);
+        if(userLimit != -1) originalObject.setUserLimit(userLimit);
         client.getRequester().patchRequest(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).build(), originalObject.getModifyObject());
+    }
+
+    @Override
+    public void updatePermissionOverwrites(PermissionOverwrite old, PermissionOverwrite replaced) {
+        if(!old.getType().equals(replaced.getType())) {
+            throw new IllegalArgumentException("Cannot replace overwrites of different types.");
+        }
+        if(!checkPermission(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to change this channel's permissions.");
+        }
+
+        PermissionOverwriteObject poo = new PermissionOverwriteObject();
+        poo.setType(replaced.getType());
+        poo.setAllow(Permission.convertToValue(replaced.getAllow()));
+        poo.setDeny(Permission.convertToValue(replaced.getDeny()));
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("permissions").addElement(old.getId()).build();
+        client.getRequester().putRequest(endpoint, client.getSerializer().serialize(poo));
+    }
+
+    @Override
+    public void deletePermissionOverwrites(PermissionOverwrite overwrites) {
+        if(!checkPermission(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to change this channel's permissions.");
+        }
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("permissions").addElement(overwrites.getId()).build();
+        client.getRequester().deleteRequest(endpoint);
     }
 
     @Override
@@ -209,6 +291,46 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
             throw new PermissionDeniedException("This application doesn't have the permission to read message history in this channel.");
         }
         return super.getMessage(id);
+    }
+
+    @Override
+    public void bulkDeleteMessages(List<Message> messages) {
+        bulkDeleteMessagesByIds(messages.stream().map(Message::getId).collect(Collectors.toList()));
+    }
+
+    @Override
+    public void bulkDeleteMessagesByIds(List<String> messageIds) {
+        if(!checkPermission(Permission.MANAGE_MESSAGES)) {
+            throw new PermissionDeniedException("This application doesn't have the permission to delete messages in this channel.");
+        }
+        final JSONArray jsonArray = new JSONArray();
+        messageIds.forEach(jsonArray::put);
+        final JSONObject jsonObject = new JSONObject();
+        jsonObject.put("messages", jsonArray);
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("messages").addElement("bulk-delete").build();
+        client.getRequester().postRequest(endpoint, jsonObject);
+    }
+
+    @Override
+    public void pinMessage(Message message) {
+        if(!isPrivate()) {
+            if(!((ServerChannelImpl) toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
+                throw new PermissionDeniedException("This application doesn't have the permission manage messages in this channel.");
+            }
+        }
+        super.pinMessage(message);
+    }
+
+    @Override
+    public void unpinMessage(Message message) {
+        if(!isPrivate()) {
+            if(!((ServerChannelImpl) toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
+                throw new PermissionDeniedException("This application doesn't have the permission manage messages in this channel.");
+            }
+        }
+        super.unpinMessage(message);
     }
 
     @Override

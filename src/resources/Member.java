@@ -14,6 +14,14 @@ public interface Member {
 
     Server getServer();
 
+    PrivateChannel createPrivateChannel();
+
     void addRole(Role role) throws PermissionDeniedException;
     void removeRole(Role role) throws PermissionDeniedException;
+
+    void setRoles(List<Role> roles);
+    void mute(boolean mute);
+    void deafen(boolean deaf);
+    void moveChannel(ServerChannel newChannel);
+    void changeNickname(String nickname);
 }

@@ -9,6 +9,7 @@ import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.Channel;
 import cz.salmelu.discord.resources.Message;
+import cz.salmelu.discord.resources.Permission;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -126,6 +127,37 @@ public abstract class ChannelBase implements Channel {
     public void triggerTyping() {
         client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("typing").build());
+    }
+
+    @Override
+    public List<Message> getPinnedMessages() {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("pins").build();
+        JSONArray array = client.getRequester().getRequestAsArray(endpoint);
+
+        List<Message> messages = new ArrayList<>();
+        for (int i = 0; i < array.length(); i++) {
+            JSONObject jsonObject = array.getJSONObject(i);
+            MessageObject messageObject = client.getSerializer().deserialize(jsonObject, MessageObject.class);
+            MessageImpl message = new MessageImpl(client, messageObject);
+            messages.add(message);
+        }
+        return messages;
+    }
+
+    @Override
+    public void pinMessage(Message message) {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("pins").addElement(message.getId()).build();
+        client.getRequester().putRequest(endpoint);
+
+    }
+
+    @Override
+    public void unpinMessage(Message message) {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getId()).addElement("pins").addElement(message.getId()).build();
+        client.getRequester().deleteRequest(endpoint);
     }
 
     @Override

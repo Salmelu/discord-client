@@ -29,6 +29,12 @@ public interface Channel {
     ServerChannel toServerChannel();
     PrivateChannel toPrivateChannel();
 
+    List<Message> getPinnedMessages();
+
+    void pinMessage(Message message);
+
+    void unpinMessage(Message message);
+
     void deleteChannel();
 
     class ChannelType {

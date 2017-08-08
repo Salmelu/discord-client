@@ -11,11 +11,20 @@ public interface Message {
     String getRawText();
     String getText();
 
+    void edit(String newText);
+
+    void delete();
+
     Channel getChannel();
 
     Collection<Reaction> getReactions();
     void addReaction(Emoji emoji);
     void removeReaction(Emoji emoji);
+
+    void removeUserReaction(Emoji emoji, User user);
+
+    void removeAllReactions();
+
     List<User> getReactions(Emoji emoji);
 
     User getAuthor();

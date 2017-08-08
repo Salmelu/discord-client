@@ -6,6 +6,8 @@ public interface Role {
 
     String getId();
     String getName();
+    Server getServer();
+
     String getMention();
     Set<Permission> getPermissions();
 }

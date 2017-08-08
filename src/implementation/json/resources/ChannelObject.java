@@ -99,6 +99,8 @@ public class ChannelObject implements MappedObject {
         return new JSONObject()
                 .put("name", name)
                 .put("topic", topic)
-                .put("position", position);
+                .put("position", position)
+                .put("bitrate", bitrate)
+                .put("user_limit", userLimit);
     }
 }

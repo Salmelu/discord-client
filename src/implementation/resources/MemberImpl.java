@@ -1,10 +1,13 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.NameHelper;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,12 +72,17 @@ public class MemberImpl implements Member {
     }
 
     @Override
+    public PrivateChannel createPrivateChannel() {
+        return getUser().createPrivateChannel();
+    }
+
+    @Override
     public void addRole(Role role) throws PermissionDeniedException {
         if(roles.contains(role)) {
             return;
         }
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
-            throw new PermissionDeniedException("This application cannot manage roles of that server.");
+            throw new PermissionDeniedException("This application cannot manage roles of this server.");
         }
         client.getRequester().putRequest(EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(server.getId()).addElement("members").addElement(getId())
@@ -88,12 +96,86 @@ public class MemberImpl implements Member {
             return;
         }
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
-            throw new PermissionDeniedException("This application cannot manage roles of that server.");
+            throw new PermissionDeniedException("This application cannot manage roles of this server.");
         }
         client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(server.getId()).addElement("members").addElement(getId())
                 .addElement("roles").addElement(role.getId()).build());
         roles.remove(role);
+    }
+
+    @Override
+    public void setRoles(List<Role> roles) {
+        if(!server.checkPermission(Permission.MANAGE_ROLES)) {
+            throw new PermissionDeniedException("This application cannot manage roles of this server.");
+        }
+        JSONArray idArray = new JSONArray();
+        for(Role role : roles) {
+            if(!roles.contains(role)) continue;
+            idArray.put(role.getId());
+        }
+
+        JSONObject request = new JSONObject();
+        request.put("roles", idArray);
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
+                .addElement("members").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, request);
+    }
+
+    @Override
+    public void mute(boolean mute) {
+        if(!server.checkPermission(Permission.VOICE_MUTE)) {
+            throw new PermissionDeniedException("This application cannot mute users of this server.");
+        }
+        JSONObject request = new JSONObject();
+        request.put("mute", mute);
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
+                .addElement("members").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, request);
+    }
+
+    @Override
+    public void deafen(boolean deaf) {
+        if(!server.checkPermission(Permission.VOICE_DEAFEN)) {
+            throw new PermissionDeniedException("This application cannot deafen users of this server.");
+        }
+        JSONObject request = new JSONObject();
+        request.put("deaf", deaf);
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
+                .addElement("members").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, request);
+    }
+
+    @Override
+    public void moveChannel(ServerChannel newChannel) {
+        if(!newChannel.isVoice() || !newChannel.getServer().getId().equals(getId())) {
+            throw new PermissionDeniedException("Invalid channel id given.");
+        }
+        if(!server.checkPermission(Permission.VOICE_MOVE)) {
+            throw new PermissionDeniedException("This application cannot move voice channel users of this server.");
+        }
+        JSONObject request = new JSONObject();
+        request.put("channel_id", newChannel.getId());
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
+                .addElement("members").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, request);
+    }
+
+
+    @Override
+    public void changeNickname(String nickname) {
+        nickname = nickname.trim();
+        if(!NameHelper.validateName(nickname)) {
+            throw new IllegalArgumentException("Invalid nickname requested.");
+        }
+        if(!getServer().getPermissions().contains(Permission.MANAGE_NICKNAMES)) {
+            throw new PermissionDeniedException("This application cannot change nicknames on this server.");
+        }
+        JSONObject request = new JSONObject();
+        request.put("nick", nickname);
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
+                .addElement("members").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, request);
     }
 
 }

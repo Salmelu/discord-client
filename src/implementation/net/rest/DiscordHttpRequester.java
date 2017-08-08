@@ -113,15 +113,17 @@ public class DiscordHttpRequester {
         return response;
     }
 
-    private void fireRequestImpl(Endpoint endpoint, HttpRequest request) {
+    private HttpResponse<String> fireRequestImpl(Endpoint endpoint, HttpRequest request) {
         try {
             HttpResponse<String> response = request.asString();
             processHttpResponse(response);
             updateLimit(endpoint, response);
+            return response;
         }
         catch (UnirestException e) {
             logger.warn("Couldn't send an object to discord servers.", e);
         }
+        return null;
     }
 
     public synchronized void getRequest(Endpoint endpoint) {
@@ -169,6 +171,17 @@ public class DiscordHttpRequester {
         fireRequestImpl(endpoint, request);
     }
 
+    public void putRequest(Endpoint endpoint, JSONObject object) {
+        if(stopped) return;
+        // TODO: toASCIIstring()
+        waitForLimit(endpoint);
+        logger.debug("Sending PUT request to " + endpoint.getAddress() + ": " + object.toString());
+        HttpRequestWithBody request = Unirest.put(endpoint.getAddress());
+        fillHeaders(request);
+        request.body(object);
+        fireRequestImpl(endpoint, request);
+    }
+
     public synchronized void deleteRequest(Endpoint endpoint) {
         if(stopped) return;
         waitForLimit(endpoint);
@@ -181,16 +194,29 @@ public class DiscordHttpRequester {
     public synchronized void postRequest(Endpoint endpoint, JSONObject object) {
         if(stopped) return;
         waitForLimit(endpoint);
-        logger.debug("Sending POST request to " + endpoint.getAddress() + ": " + object.toString());
+        logger.debug("Sending POST request to " + endpoint.getAddress() + ": "
+                + (object == null ? "null" : object.toString()));
         HttpRequestWithBody request = Unirest.post(endpoint.getAddress());
         fillHeaders(request);
-        request.body(object);
+        if(object != null) request.body(object);
         fireRequestImpl(endpoint, request);
     }
 
     public synchronized void postRequest(Endpoint endpoint, MappedObject object) {
         if(stopped) return;
         postRequest(endpoint, serializer.serialize(object));
+    }
+
+    public synchronized JSONObject postRequestAsObject(Endpoint endpoint, JSONObject object) {
+        if(stopped) return null;
+        waitForLimit(endpoint);
+        logger.debug("Sending POST request to " + endpoint.getAddress() + ": "
+                + (object == null ? "null" : object.toString()));
+        HttpRequestWithBody request = Unirest.post(endpoint.getAddress());
+        fillHeaders(request);
+        if(object != null) request.body(object);
+        HttpResponse<String> response = fireRequestImpl(endpoint, request);
+        return new JSONObject(response.getBody());
     }
 
     private <T extends HttpRequest> void fillHeaders(T request) {

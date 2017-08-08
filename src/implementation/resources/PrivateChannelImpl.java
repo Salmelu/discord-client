@@ -2,10 +2,12 @@ package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
+import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -19,7 +21,21 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
         this.id = channelObject.getId();
         this.originalObject = channelObject;
         this.client = client;
-        this.users = users;
+        if(users == null) {
+            users = new ArrayList<>();
+            for (UserObject userObject : originalObject.getRecipients()) {
+                UserImpl user = client.getUser(userObject.getId());
+                if(user == null) {
+                    user = new UserImpl(client, userObject);
+                    client.addUser(user);
+                }
+                users.add(user);
+            }
+            this.users = users;
+        }
+        else {
+            this.users = users;
+        }
     }
 
     @Override

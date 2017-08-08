@@ -2,14 +2,17 @@ package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.implementation.Dispatcher;
 import cz.salmelu.discord.implementation.json.reflector.Serializer;
+import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.net.*;
 import cz.salmelu.discord.implementation.net.rest.DiscordHttpRequester;
 import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.implementation.net.socket.DiscordWebSocket;
 import cz.salmelu.discord.implementation.net.socket.DiscordWebSocketState;
 import cz.salmelu.discord.resources.*;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.net.URI;
@@ -30,8 +33,8 @@ public class ClientImpl implements Client {
     private final Map<String, Server> serversByName = new HashMap<>();
     private final Map<String, Server> serversById = new HashMap<>();
 
-    private final List<Channel> channelList = new ArrayList<>();
-    private final Map<String, Channel> channelsByName = new HashMap<>();
+    private final List<ServerChannel> serverChannelList = new ArrayList<>();
+    private final List<PrivateChannel> privateChannelList = new ArrayList<>();
     private final Map<String, Channel> channelsById = new HashMap<>();
 
     private final List<User> userList = new ArrayList<>();
@@ -72,7 +75,18 @@ public class ClientImpl implements Client {
 
     public void purgeData() {
         // needed when the connection invalidates, all is reloaded anyway
-        // TODO: clear all data
+        serverList.clear();
+        serversByName.clear();
+        serversById.clear();
+
+        serverChannelList.clear();
+        privateChannelList.clear();
+        channelsById.clear();
+
+        userList.clear();
+        usersById.clear();
+        myUser = null;
+        // TODO: clear all data when new is added
     }
 
     public void logout() {
@@ -116,9 +130,8 @@ public class ClientImpl implements Client {
         serversById.remove(server.getId());
 
         server.getChannels().forEach(channel -> {
-            channelList.remove(channel);
+            serverChannelList.remove(channel);
             channelsById.remove(channel.getId());
-            channelsByName.remove(channel.getName());
         });
     }
 
@@ -142,6 +155,19 @@ public class ClientImpl implements Client {
     }
 
     @Override
+    public User getUserById(String id) {
+        if(usersById.containsKey(id)) {
+            return usersById.get(id);
+        }
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.USER).addElement(id).build();
+        final JSONObject jsonObject = getRequester().getRequestAsObject(endpoint);
+        final UserObject userObject = getSerializer().deserialize(jsonObject, UserObject.class);
+        final UserImpl newUser = new UserImpl(this, userObject);
+        addUser(newUser);
+        return newUser;
+    }
+
+    @Override
     public synchronized List<Server> getServers() {
         return serverList;
     }
@@ -157,27 +183,56 @@ public class ClientImpl implements Client {
     }
 
     public synchronized void addChannel(Channel channel) {
-        channelList.add(channel);
         channelsById.put(channel.getId(),channel);
+        if(channel.isPrivate()) {
+            privateChannelList.add(channel.toPrivateChannel());
+        }
+        else {
+            final ServerChannel serverChannel = channel.toServerChannel();
+            serverChannelList.add(serverChannel);
+
+        }
     }
 
     public synchronized void removeChannel(Channel channel) {
-        channelList.remove(channel);
+        if(channel.isPrivate()) privateChannelList.remove(channel);
+        else serverChannelList.remove(channel);
         channelsById.remove(channel.getId());
-        if(!channel.isPrivate()) channelsByName.remove(channel.toServerChannel().getName());
     }
 
     public synchronized void addChannels(List<ServerChannel> channels) {
         for(ServerChannel channel : channels) {
-            channelList.add(channel);
-            channelsByName.put(channel.getName(), channel);
+            serverChannelList.add(channel);
             channelsById.put(channel.getId(), channel);
         }
     }
 
     @Override
-    public synchronized List<Channel> getChannels() {
-        return channelList;
+    public synchronized List<ServerChannel> getServerChannels() {
+        return serverChannelList;
+    }
+
+    @Override
+    public synchronized List<PrivateChannel> getPrivateChannels() {
+        if(privateChannelList.isEmpty()) {
+            reloadPrivateChannels();
+        }
+        return privateChannelList;
+    }
+
+    @Override
+    public synchronized void reloadPrivateChannels() {
+        privateChannelList.clear();
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.USER)
+                .addElement("@me").addElement("channels").build();
+        JSONArray jsonArray = getRequester().getRequestAsArray(endpoint);
+        for(int i = 0; i < jsonArray.length(); i++) {
+            JSONObject jsonObject = jsonArray.getJSONObject(i);
+            PrivateChannelObject channelObject = getSerializer().deserialize(jsonObject, PrivateChannelObject.class);
+            PrivateChannelImpl channel = new PrivateChannelImpl(this, channelObject, null);
+            privateChannelList.add(channel);
+            channelsById.put(channel.getId(), channel);
+        }
     }
 
     @Override
@@ -185,8 +240,4 @@ public class ClientImpl implements Client {
         return channelsById.get(id);
     }
 
-    @Override
-    public synchronized Channel getChannelByName(String name) {
-        return channelsByName.get(name);
-    }
 }

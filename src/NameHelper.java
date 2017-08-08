@@ -4,9 +4,9 @@ import cz.salmelu.discord.resources.Member;
 import cz.salmelu.discord.resources.Server;
 
 /**
- * <p>A simple class to convert message mentions to {@link Member} references.</p>
+ * <p>A simple class to work with name checks and conversions.</p>
  */
-public class NameMatcher {
+public class NameHelper {
     /**
      * <p>Tries to match the member to any of the server members.</p>
      * @param server the server where the mentions were used
@@ -28,5 +28,17 @@ public class NameMatcher {
         else {
             return server.getMemberByNickname(nameString);
         }
+    }
+
+    /**
+     * <p>Checks if the given name is a valid user name or nickname according to discord rules.</p>
+     * @param name checked name
+     * @return true if given name can be set as a nickname or username
+     */
+    public static boolean validateName(String name) {
+        if(name.length() < 2 || name.length() > 32) return false;
+        if(name.contains("@") || name.contains("#") || name.contains(":") || name.contains("```")) return false;
+        if(name.equals("discordtag") || name.equals("everyone") || name.equals("here")) return false;
+        return true;
     }
 }

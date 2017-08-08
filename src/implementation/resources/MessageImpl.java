@@ -2,6 +2,7 @@ package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
@@ -89,6 +90,33 @@ public class MessageImpl implements Message {
     }
 
     @Override
+    public void edit(String newText) {
+        if(!getAuthor().getId().equals(client.getMyUser().getId())) {
+            throw new PermissionDeniedException("You cannot edit messages that aren't yours.");
+        }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("content", newText);
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getChannel().getId())
+                .addElement("messages").addElement(getId()).build();
+        client.getRequester().patchRequest(endpoint, jsonObject);
+    }
+
+    @Override
+    public void delete() {
+        if(!getAuthor().getId().equals(client.getMyUser().getId())) {
+            if(!((ServerChannelImpl) channel.toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
+                throw new PermissionDeniedException("The application doesn't have permission to delete other messages than its.");
+            }
+        }
+
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getChannel().getId())
+                .addElement("messages").addElement(getId()).build();
+        client.getRequester().deleteRequest(endpoint);
+    }
+
+    @Override
     public Channel getChannel() {
         return channel;
     }
@@ -148,6 +176,9 @@ public class MessageImpl implements Message {
     public void addReaction(Emoji emoji) {
         final Channel channel = getChannel();
         ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
+        if(reaction != null && reaction.isMine()) {
+            throw new IllegalArgumentException("This message already contains application's reaction.");
+        }
         if (!channel.isPrivate()) {
             final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
             if (!serverChannel.checkPermission(Permission.READ_MESSAGE_HISTORY)) {
@@ -173,15 +204,53 @@ public class MessageImpl implements Message {
 
     @Override
     public void removeReaction(Emoji emoji) {
-        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().getName().equals(emoji)).findFirst().orElse(null);
+        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
         if(reaction == null) {
             throw new IllegalArgumentException("This message doesn't contain that emoji.");
+        }
+        if(!reaction.isMine()) {
+            throw new IllegalArgumentException("This message doesn't contain application's reaction.");
         }
         client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getChannel().getId()).addElement("messages").addElement(getId())
                 .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build());
         reaction.decrement(true);
         if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+    }
+
+    @Override
+    public void removeUserReaction(Emoji emoji, User user) {
+        if(user.getId().equals(client.getMyUser().getId())) {
+            removeReaction(emoji);
+            return;
+        }
+        if (!channel.isPrivate()) {
+            final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
+            if (!serverChannel.checkPermission(Permission.MANAGE_MESSAGES)) {
+                throw new PermissionDeniedException("This application cannot remove other user's reactions on this server.");
+            }
+        }
+        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
+        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getChannel().getId()).addElement("messages").addElement(getId())
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement(user.getId()).build());
+        reaction.decrement(false);
+        if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+    }
+
+    @Override
+    public void removeAllReactions() {
+        if (!channel.isPrivate()) {
+            final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
+            if (!serverChannel.checkPermission(Permission.MANAGE_MESSAGES)) {
+                throw new PermissionDeniedException("This application cannot remove other user's reactions on this server.");
+            }
+        }
+
+        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(getChannel().getId()).addElement("messages").addElement(getId())
+                .addElement("reactions").build());
+        reactions.clear();
     }
 
     @Override

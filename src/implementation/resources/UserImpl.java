@@ -1,14 +1,19 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
-import cz.salmelu.discord.resources.Client;
+import cz.salmelu.discord.implementation.net.rest.Endpoint;
+import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
+import cz.salmelu.discord.resources.Channel;
+import cz.salmelu.discord.resources.PrivateChannel;
+import org.json.JSONObject;
 
 public class UserImpl implements cz.salmelu.discord.resources.User {
 
     private final UserObject originalObject;
-    private final Client client;
+    private final ClientImpl client;
 
-    public UserImpl(Client client, UserObject userObject) {
+    public UserImpl(ClientImpl client, UserObject userObject) {
         this.originalObject = userObject;
         this.client = client;
     }
@@ -50,5 +55,23 @@ public class UserImpl implements cz.salmelu.discord.resources.User {
     @Override
     public String getMention() {
         return "<@" + getId() + ">";
+    }
+
+    @Override
+    public PrivateChannel createPrivateChannel() {
+        final Endpoint endpoint = EndpointBuilder.create(Endpoint.USER).addElement("@me").addElement("channels").build();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("recipient_id", getId());
+        JSONObject replyObject = client.getRequester().postRequestAsObject(endpoint, jsonObject);
+        if(replyObject == null) return null;
+        PrivateChannelObject channelObject = client.getSerializer().deserialize(replyObject,
+                PrivateChannelObject.class);
+        Channel channel = client.getChannelById(channelObject.getId());
+        if(channel == null) {
+            PrivateChannelImpl newChannel = new PrivateChannelImpl(client, channelObject, null);
+            client.addChannel(newChannel);
+            return newChannel;
+        }
+        return channel.toPrivateChannel();
     }
 }
