@@ -83,6 +83,11 @@ public class ServerImpl implements Server {
         return otherCast.getId().equals(getId());
     }
 
+    @Override
+    public int hashCode() {
+        return getId().hashCode();
+    }
+
     public MemberImpl getMe() {
         return me;
     }
@@ -553,5 +558,13 @@ public class ServerImpl implements Server {
                 .addElement(getId()).addElement("prune").addParam("days", String.valueOf(days)).build();
         JSONObject result = client.getRequester().postRequestAsObject(endpoint, null);
         return result.getInt("pruned");
+    }
+
+    @Override
+    public void deleteChannel(ServerChannel channel) {
+        if(!channelList.contains(channel)) {
+            throw new IllegalArgumentException("Given channel doesn't belong this server.");
+        }
+        channel.deleteChannel();
     }
 }

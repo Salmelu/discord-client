@@ -42,6 +42,11 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
+    public int hashCode() {
+        return getId().hashCode() * 71;
+    }
+
+    @Override
     public ServerChannel toServerChannel() {
         return this;
     }

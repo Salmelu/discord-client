@@ -42,9 +42,14 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
     public boolean equals(Object other) {
         if (other == null) return false;
         if (other == this) return true;
-        if (!(other instanceof PrivateChannelImpl))return false;
+        if (!(other instanceof PrivateChannelImpl)) return false;
         PrivateChannelImpl otherCast = (PrivateChannelImpl) other;
         return otherCast.getId().equals(getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getId().hashCode() * 71;
     }
 
     @Override

@@ -38,6 +38,11 @@ public class UserImpl implements cz.salmelu.discord.resources.User {
     }
 
     @Override
+    public int hashCode() {
+        return getId().hashCode();
+    }
+
+    @Override
     public String getId() {
         return originalObject.getId();
     }

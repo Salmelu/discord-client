@@ -47,4 +47,6 @@ public interface Server {
 
     int getPruneMembersCount(int days);
     int pruneMembers(int days);
+
+    void deleteChannel(ServerChannel channel);
 }

@@ -38,4 +38,7 @@ public interface Message {
 
     void reply(String reply);
 
+    void pin();
+
+    void unpin();
 }

@@ -32,6 +32,20 @@ public class MemberImpl implements Member {
         Arrays.stream(originalObject.getRoles()).forEach(role -> roles.add(server.getRoleById(role)));
     }
 
+    @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof MemberImpl))return false;
+        MemberImpl otherCast = (MemberImpl) other;
+        return otherCast.getId().equals(getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getId().hashCode() * 97;
+    }
+
     public void setNickname(String nickname) {
         this.originalObject.setNickname(nickname);
     }
@@ -148,7 +162,7 @@ public class MemberImpl implements Member {
 
     @Override
     public void moveChannel(ServerChannel newChannel) {
-        if(!newChannel.isVoice() || !newChannel.getServer().getId().equals(getId())) {
+        if(!newChannel.isVoice() || !newChannel.getServer().equals(getServer())) {
             throw new PermissionDeniedException("Invalid channel id given.");
         }
         if(!server.checkPermission(Permission.VOICE_MOVE)) {

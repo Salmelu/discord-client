@@ -38,6 +38,21 @@ public class ReactionImpl implements Reaction {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof ReactionImpl))return false;
+        ReactionImpl otherCast = (ReactionImpl) other;
+        return otherCast.getMessage().equals(message)
+                && otherCast.getEmoji().equals(emoji);
+    }
+
+    @Override
+    public int hashCode() {
+        return message.hashCode() * 631 + emoji.hashCode() * 76319;
+    }
+
+    @Override
     public int getCount() {
         return originalObject.getCount();
     }

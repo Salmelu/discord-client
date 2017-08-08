@@ -67,6 +67,20 @@ public class MessageImpl implements Message {
     }
 
     @Override
+    public boolean equals(Object other) {
+        if (other == null) return false;
+        if (other == this) return true;
+        if (!(other instanceof MessageImpl))return false;
+        MessageImpl otherCast = (MessageImpl) other;
+        return otherCast.getId().equals(getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getId().hashCode() * 101;
+    }
+
+    @Override
     public String getId() {
         return originalObject.getId();
     }
@@ -91,7 +105,7 @@ public class MessageImpl implements Message {
 
     @Override
     public void edit(String newText) {
-        if(!getAuthor().getId().equals(client.getMyUser().getId())) {
+        if(!getAuthor().equals(client.getMyUser())) {
             throw new PermissionDeniedException("You cannot edit messages that aren't yours.");
         }
 
@@ -105,7 +119,7 @@ public class MessageImpl implements Message {
 
     @Override
     public void delete() {
-        if(!getAuthor().getId().equals(client.getMyUser().getId())) {
+        if(!getAuthor().equals(client.getMyUser())) {
             if(!((ServerChannelImpl) channel.toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
                 throw new PermissionDeniedException("The application doesn't have permission to delete other messages than its.");
             }
@@ -220,7 +234,7 @@ public class MessageImpl implements Message {
 
     @Override
     public void removeUserReaction(Emoji emoji, User user) {
-        if(user.getId().equals(client.getMyUser().getId())) {
+        if(user.equals(client.getMyUser())) {
             removeReaction(emoji);
             return;
         }
@@ -298,5 +312,15 @@ public class MessageImpl implements Message {
             reactions.put(removedReaction.getEmoji().getName(), removedReaction);
             return removedReaction;
         }
+    }
+
+    @Override
+    public void pin() {
+        getChannel().pinMessage(this);
+    }
+
+    @Override
+    public void unpin() {
+        getChannel().unpinMessage(this);
     }
 }

@@ -293,7 +293,7 @@ public class Dispatcher {
                 logger.debug("Skipping a bot message.");
                 return;
             }
-            if (ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
+            if (ignoreOwnMessages && messageObject.getAuthor().equals(client.getMyUser())) {
                 logger.debug("Skipping own message.");
                 return;
             }
@@ -323,7 +323,7 @@ public class Dispatcher {
             logger.debug("Skipping a bot message.");
             return;
         }
-        if(ignoreOwnMessages && messageObject.getAuthor().getId().equals(client.getMyUser().getId())) {
+        if(ignoreOwnMessages && messageObject.getAuthor().equals(client.getMyUser())) {
             logger.debug("Skipping your own message.");
             return;
         }

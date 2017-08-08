@@ -28,6 +28,11 @@ public class RoleImpl implements Role {
         return otherCast.getId().equals(getId());
     }
 
+    @Override
+    public int hashCode() {
+        return getId().hashCode();
+    }
+
     public void update(RoleObject object) {
         originalObject.setName(object.getName());
         originalObject.setColor(object.getColor());
