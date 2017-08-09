@@ -1,21 +1,25 @@
 package cz.salmelu.discord.implementation;
 
-import cz.salmelu.discord.Context;
-import cz.salmelu.discord.NotifyManager;
-import cz.salmelu.discord.StorageManager;
-import cz.salmelu.discord.SubscriptionManager;
+import cz.salmelu.discord.*;
 
 public class ContextImpl implements Context {
     private final StorageManagerImpl storageManager;
     private final NotifyManagerImpl notifyManager;
-    private final SubscriptionManager subscriptionManager;
+    private final SubscriptionMaster subscriptionMaster;
+    private final Class<?> owner;
 
     public ContextImpl() {
         storageManager = new StorageManagerImpl();
         notifyManager = new NotifyManagerImpl();
-        subscriptionManager = new SubscriptionManagerImpl(
-                storageManager.getStorage(this, "subscription_manager_channels"),
-                storageManager.getStorage(this, "subscription_manager_subs"));
+        subscriptionMaster = new SubscriptionMaster(storageManager.getStorage(SubscriptionMaster.class));
+        owner = null;
+    }
+
+    private ContextImpl(ContextImpl master, Class<?> owner) {
+        storageManager = master.storageManager;
+        notifyManager = master.notifyManager;
+        subscriptionMaster = master.subscriptionMaster;
+        this.owner = owner;
     }
 
     public void setDispatcher(Dispatcher dispatcher) {
@@ -26,9 +30,14 @@ public class ContextImpl implements Context {
         notifyManager.start();
     }
 
+    public Context spawn(Class<?> owner) {
+        return new ContextImpl(this, owner);
+    }
+
     @Override
-    public StorageManager getStorageManager() {
-        return storageManager;
+    public Storage getStorage() {
+        if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
+        return storageManager.getStorage(owner);
     }
 
     public StorageManagerImpl getStorageManagerImpl() {
@@ -42,6 +51,7 @@ public class ContextImpl implements Context {
 
     @Override
     public SubscriptionManager getSubscriptionManager() {
-        return subscriptionManager;
+        if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
+        return subscriptionMaster.spawn(owner);
     }
 }

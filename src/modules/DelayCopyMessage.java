@@ -13,7 +13,7 @@ public class DelayCopyMessage implements MessageListener {
 
     public DelayCopyMessage(Context context) {
         this.context = context;
-        this.storage = context.getStorageManager().getStorage(this, "copier");
+        this.storage = context.getStorage();
         if (!storage.hasValue("last"))
             storage.setValue("last", "none");
     }

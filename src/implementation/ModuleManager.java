@@ -23,11 +23,11 @@ public class ModuleManager {
     private final HashMap<String, MessageListener> messageListenersByName = new HashMap<>();
     private final List<UserActionListener> actionListeners = new ArrayList<>();
     private final List<ServerListener> serverListeners = new ArrayList<>();
-    private final Context context;
+    private final ContextImpl context;
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
 
-    public ModuleManager(Context context) {
+    public ModuleManager(ContextImpl context) {
         this.context = context;
         logger.debug("Initialized.");
     }
@@ -47,7 +47,7 @@ public class ModuleManager {
         }
         try {
             if (constructor != null) {
-                module = constructor.newInstance(context);
+                module = constructor.newInstance(context.spawn(moduleClass));
             }
             else {
                 module = moduleClass.newInstance();

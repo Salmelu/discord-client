@@ -5,12 +5,9 @@ package cz.salmelu.discord;
  */
 public interface StorageManager {
     /**
-     * <p>Returns a storage with a specified name.</p>
-     *
-     * <p>If a module needs to save more different types of data, a module can request various storages.</p>
+     * <p>Returns a storage for a specified module.</p>
      * @param object a module requesting the storage
-     * @param name storage name, used for identification
      * @return reference to the storage
      */
-    <T> Storage getStorage(T object, String name);
+    <T> Storage getStorage(T object);
 }

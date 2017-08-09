@@ -1,75 +1,51 @@
 package cz.salmelu.discord.implementation;
 
-import cz.salmelu.discord.Storage;
 import cz.salmelu.discord.SubscriptionManager;
 import cz.salmelu.discord.resources.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.stream.Collectors;
 
 public class SubscriptionManagerImpl implements SubscriptionManager {
 
-    private final Storage channelStorage;
-    private final Storage subsStorage;
+    private final SubscriptionMaster subscriptionMaster;
+    private final ArrayList<String> channelStorage;
+    private final HashMap<String, ArrayList<String>> subsStorage;
 
-    public SubscriptionManagerImpl(Storage channelStorage, Storage subsStorage) {
+    public SubscriptionManagerImpl(SubscriptionMaster master, ArrayList<String> channelStorage,
+                                   HashMap<String, ArrayList<String>> subsStorage) {
+        this.subscriptionMaster = master;
         this.channelStorage = channelStorage;
         this.subsStorage = subsStorage;
     }
 
     @Override
-    public <T> void registerChannel(T object, Channel channel) {
+    public void registerChannel(Channel channel) {
         if(channel.isPrivate()) {
             throw new RuntimeException("Cannot subscribe a private channel.");
         }
 
-        final String className = object.getClass().getName();
-
-        ArrayList<String> channels = channelStorage.getValue(className);
-        if(channels == null) channels = new ArrayList<>();
-        if(channels.contains(channel.getId())) return;
-
-        channels.add(channel.getId());
-        channelStorage.setValue(object.getClass().getName(), channels);
-
-        if(!subsStorage.hasValue(className)) {
-            final HashMap<String, ArrayList<String>> map = new HashMap<>();
-            map.put(channel.getId(), new ArrayList<>());
-            subsStorage.setValue(className, map);
-        }
-        else {
-            final HashMap<String, ArrayList<String>> map = subsStorage.getValue(className);
-            map.put(channel.getId(), new ArrayList<>());
-        }
+        channelStorage.add(channel.getId());
+        subsStorage.put(channel.getId(), new ArrayList<>());
+        subscriptionMaster.saveStorages();
     }
 
     @Override
-    public <T> void unregisterChannel(T object, Channel channel) {
-        ArrayList<String> channels = channelStorage.getValue(object.getClass().getName());
-        if(channels != null) {
-            channels.remove(channel.getId());
-            final HashMap<String, ArrayList<String>> map = subsStorage.getValue(object.getClass().getName());
-            map.remove(channel.getId());
-            channelStorage.setValue(object.getClass().getName(), channels);
-        }
+    public void unregisterChannel(Channel channel) {
+        channelStorage.remove(channel.getId());
+        subsStorage.remove(channel.getId());
+        subscriptionMaster.saveStorages();
     }
 
     @Override
-    public <T> void addSubscriber(T object, Message message, String errorMessage) {
-        if(!channelStorage.hasValue(object.getClass().getName())) {
-            message.reply("This function doesn't offer any subscriptions.");
-            return;
-        }
-        final List<String> channels = channelStorage.getValue(object.getClass().getName());
-        if(!channels.contains(message.getChannel().getId())) {
+    public void addSubscriber(Message message, String errorMessage) {
+        if(!channelStorage.contains(message.getChannel().getId())) {
             message.reply(errorMessage);
             return;
         }
 
-        final HashMap<String, ArrayList<String>> map = subsStorage.getValue(object.getClass().getName());
-        final ArrayList<String> subs = map.get(message.getChannel().getId());
+        final ArrayList<String> subs = subsStorage.get(message.getChannel().getId());
         if(subs.contains(message.getAuthor().getId())) {
             message.reply("You are already subscribed.");
         }
@@ -77,22 +53,17 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
             subs.add(message.getAuthor().getId());
             message.reply("You have been successfully subscribed.");
         }
+        subscriptionMaster.saveStorages();
     }
 
     @Override
-    public <T> void removeSubscriber(T object, Message message, String errorMessage) {
-        if(!channelStorage.hasValue(object.getClass().getName())) {
-            message.reply("This function doesn't offer any subscriptions.");
-            return;
-        }
-        final List<String> channels = channelStorage.getValue(object.getClass().getName());
-        if(!channels.contains(message.getChannel().getId())) {
+    public void removeSubscriber(Message message, String errorMessage) {
+        if(!channelStorage.contains(message.getChannel().getId())) {
             message.reply(errorMessage);
             return;
         }
 
-        final HashMap<String, ArrayList<String>> map = subsStorage.getValue(object.getClass().getName());
-        final ArrayList<String> subs = map.get(message.getChannel().getId());
+        final ArrayList<String> subs = subsStorage.get(message.getChannel().getId());
         if(subs == null || !subs.contains(message.getAuthor().getId())) {
             message.reply("You are already unsubscribed.");
         }
@@ -100,15 +71,16 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
             subs.remove(message.getAuthor().getId());
             message.reply("You have been successfully unsubscribed.");
         }
+        subscriptionMaster.saveStorages();
     }
 
     @Override
-    public <T> String getSubscribers(T object, Channel channel) throws RuntimeException {
-        if(!channelStorage.hasValue(object.getClass().getName())) {
-            throw new RuntimeException("Cannot request subscription of non-subscribed class");
+    public String getSubscribers(Channel channel) throws RuntimeException {
+        if(!channelStorage.contains(channel.getId())) {
+            throw new RuntimeException("This channel is not subscribed.");
         }
-        final HashMap<String, ArrayList<String>> map = subsStorage.getValue(object.getClass().getName());
-        final ArrayList<String> subs = map.get(channel.getId());
+
+        final ArrayList<String> subs = subsStorage.get(channel.getId());
 
         final Server server = channel.toServerChannel().getServer();
         purgeSubscribers(server, subs);
@@ -128,5 +100,6 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
         if(toRemove.size() > 0) {
             toRemove.forEach(subs::remove);
         }
+        subscriptionMaster.saveStorages();
     }
 }

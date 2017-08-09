@@ -7,7 +7,7 @@ import cz.salmelu.discord.resources.*;
 public class CopyMessage implements MessageListener {
     @Override
     public boolean matchMessage(Message message) {
-        return message.getText().trim().equals("rekt");
+        return message.getText().trim().equals("+emoji");
     }
 
     @Override

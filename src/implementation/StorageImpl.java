@@ -10,11 +10,10 @@ import java.util.function.Consumer;
 
 public class StorageImpl implements Storage, Serializable {
     private transient Map<String, Object> storedObjects = new HashMap<>();
-    private final String name;
     private Map<String, Object> tempObjects;
 
-    public StorageImpl(String name) {
-        this.name = name;
+    public StorageImpl() {
+
     }
 
     @Override
