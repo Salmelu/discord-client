@@ -2,6 +2,8 @@ package cz.salmelu.discord.listeners;
 
 import cz.salmelu.discord.resources.DeletedMessage;
 import cz.salmelu.discord.resources.Message;
+import cz.salmelu.discord.resources.Reaction;
+import cz.salmelu.discord.resources.User;
 
 import java.util.List;
 
@@ -16,6 +18,14 @@ public interface MessageListener extends Initializer {
     }
 
     default void onMessageDelete(List<DeletedMessage> messages) {
+
+    }
+
+    default void onReactionAdd(Reaction reaction, User user) {
+
+    }
+
+    default void onReactionRemove(Reaction reaction, User user) {
 
     }
 

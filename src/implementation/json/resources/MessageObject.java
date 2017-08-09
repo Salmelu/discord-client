@@ -8,20 +8,20 @@ import java.time.OffsetDateTime;
 public class MessageObject implements MappedObject {
     private String id;
     private String channelId;
-    private int type;
+    private Integer type;
     private UserObject author;
     private String content;
     private OffsetDateTime timestamp;
     private OffsetDateTime editedTimestamp;
-    private boolean tts;
-    private boolean mentionEveryone;
+    private Boolean tts;
+    private Boolean mentionEveryone;
     private UserObject[] mentions;
     private String[] mentionRoles;
     private AttachmentObject[] attachments;
     private EmbedObject[] embeds;
     private ReactionObject[] reactions;
     private String nonce;
-    private boolean pinned;
+    private Boolean pinned;
     private String webhookId;
 
     public String getId() {
@@ -72,19 +72,19 @@ public class MessageObject implements MappedObject {
         this.editedTimestamp = editedTimestamp;
     }
 
-    public boolean isTts() {
+    public Boolean isTts() {
         return tts;
     }
 
-    public void setTts(boolean tts) {
+    public void setTts(Boolean tts) {
         this.tts = tts;
     }
 
-    public boolean isMentionEveryone() {
+    public Boolean isMentionEveryone() {
         return mentionEveryone;
     }
 
-    public void setMentionEveryone(boolean mentionEveryone) {
+    public void setMentionEveryone(Boolean mentionEveryone) {
         this.mentionEveryone = mentionEveryone;
     }
 
@@ -136,11 +136,11 @@ public class MessageObject implements MappedObject {
         this.nonce = nonce;
     }
 
-    public boolean isPinned() {
+    public Boolean isPinned() {
         return pinned;
     }
 
-    public void setPinned(boolean pinned) {
+    public void setPinned(Boolean pinned) {
         this.pinned = pinned;
     }
 
@@ -152,11 +152,11 @@ public class MessageObject implements MappedObject {
         this.webhookId = webhookId;
     }
 
-    public int getType() {
+    public Integer getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(Integer type) {
         this.type = type;
     }
 }

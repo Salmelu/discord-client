@@ -19,6 +19,7 @@ public class ServerObject implements MappedObject {
 
     private int veriticationLevel;
     private int defaultMessageNotifications;
+    private int explicitContentFilter;
 
     private RoleObject[] roles;
     private ServerEmojiObject[] emojis;
@@ -216,5 +217,13 @@ public class ServerObject implements MappedObject {
 
     public void setRoles(RoleObject[] roles) {
         this.roles = roles;
+    }
+
+    public int getExplicitContentFilter() {
+        return explicitContentFilter;
+    }
+
+    public void setExplicitContentFilter(int explicitContentFilter) {
+        this.explicitContentFilter = explicitContentFilter;
     }
 }

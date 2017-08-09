@@ -62,16 +62,20 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     public void update(ChannelObject channelObject) {
-        originalObject.setName(channelObject.getName());
-        originalObject.setType(channelObject.getType());
-        originalObject.setPosition(channelObject.getPosition());
-        originalObject.setPermissionOverwrites(channelObject.getPermissionOverwrites());
-        originalObject.setTopic(channelObject.getTopic());
-        originalObject.setLastMessageId(channelObject.getLastMessageId());
-        originalObject.setBitrate(channelObject.getBitrate());
-        originalObject.setUserLimit(channelObject.getUserLimit());
+        if(channelObject.getName() != null) originalObject.setName(channelObject.getName());
+        if(channelObject.getPosition() != null) originalObject.setPosition(channelObject.getPosition());
+        if(channelObject.getPermissionOverwrites() != null) originalObject.setPermissionOverwrites(channelObject.getPermissionOverwrites());
+        if(channelObject.getTopic() != null) originalObject.setTopic(channelObject.getTopic());
+        if(channelObject.getLastMessageId() != null) originalObject.setLastMessageId(channelObject.getLastMessageId());
+        if(channelObject.getBitrate() != null) originalObject.setBitrate(channelObject.getBitrate());
+        if(channelObject.getUserLimit() != null) originalObject.setUserLimit(channelObject.getUserLimit());
 
         calculatePermissions();
+    }
+
+    @Override
+    public void messageArrived(Message message) {
+        originalObject.setLastMessageId(message.getId());
     }
 
     /**

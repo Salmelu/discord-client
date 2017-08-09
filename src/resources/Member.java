@@ -23,5 +23,9 @@ public interface Member {
     void mute(boolean mute);
     void deafen(boolean deaf);
     void moveChannel(ServerChannel newChannel);
+
+    void ban(int messageDays);
+    void kick();
+
     void changeNickname(String nickname);
 }

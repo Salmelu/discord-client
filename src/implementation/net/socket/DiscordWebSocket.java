@@ -9,6 +9,7 @@ import cz.salmelu.discord.implementation.json.response.*;
 
 import cz.salmelu.discord.implementation.net.RateLimiter;
 import cz.salmelu.discord.implementation.resources.ClientImpl;
+import cz.salmelu.discord.resources.Channel;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
@@ -388,6 +389,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
     }
 
     private synchronized void dispatch(JSONObject data, String type) {
+        int channelType;
         try {
             if (state == DiscordWebSocketState.DISCONNECTING) return;
             switch (type) {
@@ -399,7 +401,8 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     state = DiscordWebSocketState.READY;
                     break;
                 case "CHANNEL_CREATE":
-                    if(data.getBoolean("is_private"))
+                    channelType = data.getInt("type");
+                    if(channelType == Channel.ChannelType.PRIVATE || channelType == Channel.ChannelType.PRIVATE_GROUP)
                         dispatcher.onChannelCreate(serializer.deserialize(data, PrivateChannelObject.class));
                     else
                         dispatcher.onChannelCreate(serializer.deserialize(data, ChannelObject.class));
@@ -408,7 +411,8 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     dispatcher.onChannelUpdate(serializer.deserialize(data, ChannelObject.class));
                     break;
                 case "CHANNEL_DELETE":
-                    if(data.getBoolean("is_private"))
+                    channelType = data.getInt("type");
+                    if(channelType == Channel.ChannelType.PRIVATE || channelType == Channel.ChannelType.PRIVATE_GROUP)
                         dispatcher.onChannelDelete(serializer.deserialize(data, PrivateChannelObject.class));
                     else
                         dispatcher.onChannelDelete(serializer.deserialize(data, ChannelObject.class));
@@ -455,6 +459,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 case "GUILD_ROLE_DELETE":
                     dispatcher.onRoleDelete(serializer.deserialize(data, ServerRoleDeleteResponse.class));
                     break;
+                case "CHANNEL_PINS_UPDATE":
+                    // TODO
+                    break;
                 case "MESSAGE_CREATE":
                     dispatcher.onMessage(serializer.deserialize(data, MessageObject.class));
                     break;
@@ -487,6 +494,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     break;
                 case "VOICE_SERVER_UPDATE":
                     // Ignored, we don't implement voice
+                    break;
+                case "WEBHOOKS_UPDATE":
+                    // Ignored
                     break;
                 default:
                     logger.warn("Unrecognized event received.");

@@ -53,6 +53,11 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
     }
 
     @Override
+    public void messageArrived(Message message) {
+        originalObject.setLastMessageId(message.getId());
+    }
+
+    @Override
     public String getId() {
         return id;
     }

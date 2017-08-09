@@ -7,6 +7,7 @@ import cz.salmelu.discord.resources.Server;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Set;
 
 public class RoleImpl implements Role {
@@ -66,5 +67,15 @@ public class RoleImpl implements Role {
     @Override
     public Set<Permission> getPermissions() {
         return Collections.unmodifiableSet(Permission.getPermissions(originalObject.getPermissions()));
+    }
+
+    @Override
+    public void update(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
+        server.updateRole(this, name, permissions, color, separate, mentionable);
+    }
+
+    @Override
+    public void delete() {
+        server.deleteRole(this);
     }
 }

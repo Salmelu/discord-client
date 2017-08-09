@@ -27,6 +27,20 @@ public abstract class ChannelBase implements Channel {
         messageCache.put(message.getId(), message);
     }
 
+    public boolean hasCachedMessage(String id) {
+        return messageCache.containsKey(id);
+    }
+
+    public void removeCachedMessage(String id) {
+        if(messageCache.containsKey(id)) messageCache.remove(id);
+    }
+
+    public void clearCache() {
+        messageCache.clear();
+    }
+
+    abstract public void messageArrived(Message message);
+
     public ReactionImpl addReaction(ReactionUpdateResponse reaction, Emoji emoji) {
         if(messageCache.containsKey(reaction.getMessageId())) {
             // We only care if the message is present, otherwise the user needs to pull it whole anyway

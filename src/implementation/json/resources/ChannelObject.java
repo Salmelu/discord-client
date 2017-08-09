@@ -7,13 +7,13 @@ public class ChannelObject implements MappedObject {
     private String id;
     private String guildId;
     private String name;
-    private int type;
-    private int position;
+    private Integer type;
+    private Integer position;
     private PermissionOverwriteObject[] permissionOverwrites;
     private String topic;
     private String lastMessageId;
-    private int bitrate;
-    private int userLimit;
+    private Integer bitrate;
+    private Integer userLimit;
 
     public String getId() {
         return id;
@@ -39,19 +39,19 @@ public class ChannelObject implements MappedObject {
         this.name = name;
     }
 
-    public int getType() {
+    public Integer getType() {
         return type;
     }
 
-    public void setType(int type) {
+    public void setType(Integer type) {
         this.type = type;
     }
 
-    public int getPosition() {
+    public Integer getPosition() {
         return position;
     }
 
-    public void setPosition(int position) {
+    public void setPosition(Integer position) {
         this.position = position;
     }
 
@@ -79,19 +79,19 @@ public class ChannelObject implements MappedObject {
         this.lastMessageId = lastMessageId;
     }
 
-    public int getBitrate() {
+    public Integer getBitrate() {
         return bitrate;
     }
 
-    public void setBitrate(int bitrate) {
+    public void setBitrate(Integer bitrate) {
         this.bitrate = bitrate;
     }
 
-    public int getUserLimit() {
+    public Integer getUserLimit() {
         return userLimit;
     }
 
-    public void setUserLimit(int userLimit) {
+    public void setUserLimit(Integer userLimit) {
         this.userLimit = userLimit;
     }
 

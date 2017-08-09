@@ -38,12 +38,13 @@ public class MemberImpl implements Member {
         if (other == this) return true;
         if (!(other instanceof MemberImpl))return false;
         MemberImpl otherCast = (MemberImpl) other;
-        return otherCast.getId().equals(getId());
+        return otherCast.getId().equals(getId())
+                && otherCast.getServer().equals(getServer());
     }
 
     @Override
     public int hashCode() {
-        return getId().hashCode() * 97;
+        return getId().hashCode() * 97 + getServer().getId().hashCode() * 119;
     }
 
     public void setNickname(String nickname) {
@@ -175,6 +176,15 @@ public class MemberImpl implements Member {
         client.getRequester().patchRequest(endpoint, request);
     }
 
+    @Override
+    public void ban(int messageDays) {
+        server.banMember(this, messageDays);
+    }
+
+    @Override
+    public void kick() {
+        server.kickMember(this);
+    }
 
     @Override
     public void changeNickname(String nickname) {

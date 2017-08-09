@@ -1,5 +1,6 @@
 package cz.salmelu.discord.resources;
 
+import java.util.List;
 import java.util.Set;
 
 public interface Role {
@@ -10,4 +11,8 @@ public interface Role {
 
     String getMention();
     Set<Permission> getPermissions();
+
+    void update(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable);
+
+    void delete();
 }

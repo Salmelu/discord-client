@@ -54,6 +54,18 @@ public class Dispatcher {
             }
         }
     }
+    private interface Wrapper2<T, U> {
+        void dispatch(T a, U b);
+
+        static <T, U> void wrap(Wrapper2<T, U> method, T a, U b) {
+            try {
+                method.dispatch(a, b);
+            }
+            catch (Exception e) {
+                logger.warn("A module threw an exception", e);
+            }
+        }
+    }
 
     public void ignoreOwnMessages(boolean ignore) {
         this.ignoreOwnMessages = ignore;
@@ -96,7 +108,8 @@ public class Dispatcher {
         }
         final PrivateChannelImpl channel = new PrivateChannelImpl(client, channelObject, users);
         client.addChannel(channel);
-        // TODO: fire onPrivateChannelCreate
+        moduleManager.getUserActionListeners().forEach(
+                listener -> Wrapper.wrap(listener::onChannelOpen, channel));
     }
 
     public void onChannelCreate(ChannelObject channelObject) {
@@ -114,7 +127,8 @@ public class Dispatcher {
         }
         final ServerChannelImpl channel = new ServerChannelImpl(client, server, channelObject);
         server.addChannel(channel);
-        // TODO: fire onChannelCreate
+        moduleManager.getServerListeners().forEach(
+                listener -> Wrapper.wrap(listener::onChannelCreate, channel));
     }
 
     public void onChannelUpdate(ChannelObject channelObject) {
@@ -124,24 +138,26 @@ public class Dispatcher {
             return;
         }
         ((ServerChannelImpl) channel).update(channelObject);
-        // TODO: fire onChannelUpdate
+        moduleManager.getServerListeners().forEach(
+                listener -> Wrapper.wrap(listener::onChannelUpdate, channel.toServerChannel()));
     }
 
     public void onChannelDelete(PrivateChannelObject channelObject) {
         final Channel removed = client.getChannelById(channelObject.getId());
         client.removeChannel(removed);
-        // TODO: fire onChannelPrivateDelete
+        moduleManager.getUserActionListeners().forEach(
+                listener -> Wrapper.wrap(listener::onChannelClose, removed.toPrivateChannel()));
     }
 
     public void onChannelDelete(ChannelObject channelObject) {
         final Channel removed = client.getChannelById(channelObject.getId());
         if(removed.isPrivate()) {
-            logger.warn("Remove for server  channel that is tracked as private, ignoring server.");
             client.removeChannel(removed);
             return;
         }
         ((ServerImpl) removed.toServerChannel().getServer()).removeChannel(removed.toServerChannel());
-        // TODO: fire onChannelDelete
+        moduleManager.getServerListeners().forEach(
+                listener -> Wrapper.wrap(listener::onChannelDelete, removed.toServerChannel()));
     }
 
     public synchronized void onServerCreate(ServerObject serverObject) {
@@ -167,7 +183,7 @@ public class Dispatcher {
             return;
         }
         server.update(serverObject);
-        // TODO: fire onServerUpdate
+        moduleManager.getInitializers().forEach(listener -> Wrapper.wrap(listener::onServerUpdate, server));
     }
 
     public void onServerMemberAdd(ServerMemberAddResponse memberObject) {
@@ -196,7 +212,7 @@ public class Dispatcher {
         }
         final User user = client.getUser(memberObject.getUser().getId());
         server.removeMember(user);
-        // TODO: fire onMemberRemove
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberRemove, user));
     }
 
     public void onServerMemberUpdate(ServerMemberUpdateResponse memberObject) {
@@ -209,8 +225,8 @@ public class Dispatcher {
             logger.debug("No member in server, skipping.");
             return;
         }
-        server.updateMember(memberObject);
-        // TODO: fire onMemberUpdate
+        final Member updated = server.updateMember(memberObject);
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberUpdate, updated));
     }
 
     public void onServerMemberChunk(ServerMemberChunkResponse chunkObject) {
@@ -219,8 +235,13 @@ public class Dispatcher {
             logger.warn("No server found to be updated with new member, skipping.");
             return;
         }
-        Arrays.stream(chunkObject.getMembers()).forEach(server::addMember);
-        // TODO: fire onMemberChunk
+        final List<Member> newMembers = new ArrayList<>();
+        Arrays.stream(chunkObject.getMembers()).forEach(memberObject -> {
+            Member member = server.addMember(memberObject);
+            newMembers.add(member);
+        });
+        final List<Member> immutable = Collections.unmodifiableList(newMembers);
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberChunk, immutable));
     }
 
     public void onRoleCreate(ServerRoleResponse roleObject) {
@@ -230,7 +251,7 @@ public class Dispatcher {
             return;
         }
         final Role newRole = server.addRole(roleObject.getRole());
-        // TODO: fire onRoleCreate
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleCreate, newRole));
     }
 
     public void onRoleUpdate(ServerRoleResponse roleObject) {
@@ -243,11 +264,11 @@ public class Dispatcher {
         if(role == null) {
             logger.warn("No server found to be updated for role, creating a new one instead.");
             final Role newRole = server.addRole(roleObject.getRole());
-            // TODO: fire onRoleUpdate
+            moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleUpdate, newRole));
         }
         else {
             ((RoleImpl) role).update(roleObject.getRole());
-            // TODO: fire onRoleUpdate
+            moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleUpdate, role));
         }
     }
 
@@ -257,8 +278,8 @@ public class Dispatcher {
             logger.warn("No server found to be updated for role, skipping.");
             return;
         }
-        server.removeRole(roleObject.getRoleId());
-        // TODO: fire onRoleDelete
+        Role role = server.removeRole(roleObject.getRoleId());
+        moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleDelete, role));
     }
 
     public synchronized void onPresenceChange(PresenceUpdateResponse presenceObject) {
@@ -287,7 +308,22 @@ public class Dispatcher {
     }
 
     public synchronized void onMessageUpdate(MessageObject messageObject) {
-        final MessageImpl message = new MessageImpl(client, messageObject);
+        // FIXME: Embeds
+        final String id = messageObject.getId();
+        final String channelId = messageObject.getChannelId();
+        ChannelBase channel = (ChannelBase) client.getChannelById(channelId);
+        if(channel == null) {
+            logger.warn("Unknown channel has received message update event, skipping.");
+            return;
+        }
+        MessageImpl message;
+        if(channel.hasCachedMessage(id)) {
+            message = (MessageImpl) channel.getMessage(id);
+            message.update(messageObject);
+        }
+        else {
+            message = (MessageImpl) channel.getMessage(id);
+        }
         if(message.getAuthor() != null) {
             if (ignoreBotMessages && messageObject.getAuthor().isBot()) {
                 logger.debug("Skipping a bot message.");
@@ -313,12 +349,19 @@ public class Dispatcher {
                 stream(messagesObject.getIds())
                 .map(id -> new DeletedMessageImpl(client, id, messagesObject.getChannelId()))
                 .collect(Collectors.toList());
+        for (DeletedMessage deletedMessage : messageList) {
+            ChannelBase channel = (ChannelBase) deletedMessage.getChannel();
+            if(channel != null) channel.removeCachedMessage(deletedMessage.getId());
+        }
         moduleManager.getMessageListeners().forEach(listener -> Wrapper.wrap(listener::onMessageDelete, messageList));
     }
 
     public synchronized void onMessage(MessageObject messageObject) {
         final MessageImpl message = new MessageImpl(client, messageObject);
-        ((ChannelBase) message.getChannel()).cacheMessage(message);
+        final ChannelBase channelBase = (ChannelBase) message.getChannel();
+        channelBase.cacheMessage(message);
+        channelBase.messageArrived(message);
+
         if(ignoreBotMessages && messageObject.getAuthor().isBot()) {
             logger.debug("Skipping a bot message.");
             return;
@@ -369,8 +412,10 @@ public class Dispatcher {
             logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;
         }
-        channel.addReaction(reactionObject, emoji);
-        // TODO: fire onReactionRemove
+
+        ReactionImpl reaction = channel.addReaction(reactionObject, emoji);
+        User user = client.getUser(reactionObject.getUserId());
+        moduleManager.getMessageListeners().forEach(listener -> Wrapper2.wrap(listener::onReactionAdd, reaction, user));
     }
 
     public void onReactionRemove(ReactionUpdateResponse reactionObject) {
@@ -384,7 +429,9 @@ public class Dispatcher {
             logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;
         }
-        channel.removeReaction(reactionObject, emoji);
-        // TODO: fire onReactionAdd
+
+        ReactionImpl reaction = channel.removeReaction(reactionObject, emoji);
+        User user = client.getUser(reactionObject.getUserId());
+        moduleManager.getMessageListeners().forEach(listener -> Wrapper2.wrap(listener::onReactionRemove, reaction, user));
     }
 }

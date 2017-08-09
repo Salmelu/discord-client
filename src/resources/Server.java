@@ -1,7 +1,5 @@
 package cz.salmelu.discord.resources;
 
-import cz.salmelu.discord.implementation.resources.RoleImpl;
-
 import java.util.List;
 import java.util.Set;
 
@@ -32,8 +30,8 @@ public interface Server {
 
     void kickMember(Member member);
     List<User> getBannedUsers();
-    void banMember(Member member);
-    void banUser(User user);
+    void banMember(Member member, int messageDays);
+    void banUser(User user, int messageDays);
     void unbanUser(User user);
 
     void changeMyNickname(String nickname);

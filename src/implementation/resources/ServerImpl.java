@@ -184,10 +184,11 @@ public class ServerImpl implements Server {
         return role;
     }
 
-    public void removeRole(String roleId) {
+    public Role removeRole(String roleId) {
         final Role role = rolesById.remove(roleId);
         roleList.remove(role);
         rolesByName.remove(role.getName());
+        return role;
     }
 
     public Member addMember(ServerMemberObject memberObject) {
@@ -215,7 +216,7 @@ public class ServerImpl implements Server {
         membersByNick.remove(removed.getNickname());
     }
 
-    public void updateMember(ServerMemberUpdateResponse memberObject) {
+    public Member updateMember(ServerMemberUpdateResponse memberObject) {
         MemberImpl member = membersById.get(memberObject.getUser().getId());
 
         final String oldNick = member.getNickname();
@@ -242,6 +243,7 @@ public class ServerImpl implements Server {
             permissions = null;
             channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
         }
+        return member;
     }
 
     public ClientImpl getClient() {
@@ -302,6 +304,7 @@ public class ServerImpl implements Server {
 
     @Override
     public void loadAllMembers() {
+        client.getSocket().requestOfflineMembers(getId(), "", 0);
         // TODO: load all server members into the bot
     }
 
@@ -377,18 +380,25 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public void banMember(Member member) {
-        banUser(member.getUser());
+    public void banMember(Member member, int messageDays) {
+        banUser(member.getUser(), messageDays);
     }
 
     @Override
-    public void banUser(User user) {
+    public void banUser(User user, int messageDays) {
+        if(messageDays < 0 || messageDays > 7) {
+            throw new IllegalArgumentException("Message days must be a value between 0 and 7.");
+        }
         if(!getPermissions().contains(Permission.BAN_MEMBERS)) {
             throw new PermissionDeniedException("This application cannot ban members on this server.");
         }
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("delete-message-days", messageDays);
+
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("bans").addElement(user.getId()).build();
-        client.getRequester().putRequest(endpoint);
+        client.getRequester().putRequest(endpoint, jsonObject);
     }
 
     @Override
@@ -455,6 +465,14 @@ public class ServerImpl implements Server {
         object.put("permission_overwrites", overwritesArray);
         client.getRequester().postRequest(
                 EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build());
+    }
+
+    @Override
+    public void deleteChannel(ServerChannel channel) {
+        if(!channelList.contains(channel)) {
+            throw new IllegalArgumentException("Given channel doesn't belong this server.");
+        }
+        channel.deleteChannel();
     }
 
     @Override
@@ -558,13 +576,5 @@ public class ServerImpl implements Server {
                 .addElement(getId()).addElement("prune").addParam("days", String.valueOf(days)).build();
         JSONObject result = client.getRequester().postRequestAsObject(endpoint, null);
         return result.getInt("pruned");
-    }
-
-    @Override
-    public void deleteChannel(ServerChannel channel) {
-        if(!channelList.contains(channel)) {
-            throw new IllegalArgumentException("Given channel doesn't belong this server.");
-        }
-        channel.deleteChannel();
     }
 }

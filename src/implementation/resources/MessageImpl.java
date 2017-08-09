@@ -36,7 +36,7 @@ public class MessageImpl implements Message {
         this.client = client;
         this.channel = client.getChannelById(messageObject.getChannelId());
         if(channel == null) {
-            JSONObject channelObject = client.getRequester()
+            final JSONObject channelObject = client.getRequester()
                     .getRequestAsObject(EndpointBuilder.create(Endpoint.CHANNEL)
                             .addElement(messageObject.getChannelId()).build());
             final int type = channelObject.getInt("type");
@@ -78,6 +78,20 @@ public class MessageImpl implements Message {
     @Override
     public int hashCode() {
         return getId().hashCode() * 101;
+    }
+
+    public void update(MessageObject update) {
+        if(update.getContent() != null) originalObject.setContent(update.getContent());
+        if(update.getEditedTimestamp() != null) originalObject.setEditedTimestamp(update.getEditedTimestamp());
+        if(update.isMentionEveryone() != null) originalObject.setMentionEveryone(update.isMentionEveryone());
+        if(update.getMentions() != null) originalObject.setMentions(update.getMentions());
+        if(update.getMentionRoles() != null) originalObject.setMentionRoles(update.getMentionRoles());
+        if(update.getAttachments() != null) originalObject.setAttachments(update.getAttachments());
+        if(update.getEmbeds() != null) originalObject.setEmbeds(update.getEmbeds());
+        if(update.getReactions() != null) originalObject.setReactions(update.getReactions());
+        if(update.getNonce() != null) originalObject.setNonce(update.getNonce());
+        if(update.isPinned() != null) originalObject.setPinned(update.isPinned());
+        if(update.getWebhookId() != null) originalObject.setWebhookId(update.getWebhookId());
     }
 
     @Override

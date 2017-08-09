@@ -12,6 +12,10 @@ public interface Initializer {
 
     }
 
+    default void onServerUpdate(Server server) {
+
+    }
+
     default void onServerDelete(Server server) {
 
     }

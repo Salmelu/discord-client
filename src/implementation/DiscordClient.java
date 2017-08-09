@@ -53,7 +53,7 @@ public class DiscordClient {
             manager = new ModuleManager(context);
             dispatcher = new Dispatcher(client, manager, helpCommand);
             dispatcher.ignoreBotMessages(ignoreBot);
-            dispatcher.ignoreBotMessages(ignoreSelf);
+            dispatcher.ignoreOwnMessages(ignoreSelf);
 
             final String classFiles = properties.getProperty("modules");
             if(classFiles == null || classFiles.equals("")) {
