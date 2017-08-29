@@ -29,6 +29,8 @@ src/implementation/Secret.java
 
 # personal 
 TODO
+docs/
+unirest/
 
 # builded files
 build/

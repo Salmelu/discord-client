@@ -1,15 +1,15 @@
 package cz.salmelu.discord;
 
 /**
- * FIXME: REWRITE
- * <p>Current application context. Holds references to instantiated managers.</p>
+ * <p>Current application context. Provides instances of various managers.</p>
  */
 public interface Context {
     /**
-     * Gets application's storage manager.
-     * @return an instance of {@link StorageManager}
+     * <p>Gets module's personal storage identified by a name.</p>
+     * <p>Every module can have multiple storages with different names.</p>.
+     * @return an instance of {@link Storage}
      */
-    Storage getStorage();
+    Storage getStorage(String name);
 
     /**
      * Gets application's notify manager.
@@ -18,8 +18,14 @@ public interface Context {
     NotifyManager getNotifyManager();
 
     /**
-     * Gets application's subscription manager.
+     * Gets module's subscription manager.
      * @return an instance of {@link SubscriptionManager}
      */
     SubscriptionManager getSubscriptionManager();
+
+    /**
+     * Gets module's permission guard.
+     * @return an instance of {@link PermissionGuard}
+     */
+    PermissionGuard getPermissionGuard();
 }

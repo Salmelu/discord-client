@@ -73,7 +73,7 @@ public class ModuleManager {
             serverListeners.add((ServerListener) module);
         }
 
-        logger.debug("Module initialized.");
+        logger.info("Module " + moduleClass.getCanonicalName() + " loaded.");
         messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
     }
 

@@ -3,45 +3,54 @@ package cz.salmelu.discord.implementation;
 import cz.salmelu.discord.Storage;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public class StorageImpl implements Storage, Serializable {
-    private transient Map<String, Object> storedObjects = new HashMap<>();
-    private Map<String, Object> tempObjects;
+    final Map<String, Object> storedObjects;
+    private Lock lock;
 
-    public StorageImpl() {
+    StorageImpl() {
+        storedObjects = Collections.synchronizedMap(new HashMap<>());
+    }
 
+    StorageImpl(Map<String, Object> map) {
+        storedObjects = map;
     }
 
     @Override
-    public synchronized boolean hasValue(String name) {
+    public boolean hasValue(String name) {
         return storedObjects.containsKey(name);
     }
 
     @Override
     @SuppressWarnings("unchecked")
-    public synchronized <T extends Serializable> T getValue(String name) {
+    public <T extends Serializable> T getValue(String name) {
         return (T) storedObjects.get(name);
     }
 
     @Override
-    public synchronized <T extends Serializable> void setValue(String name, T value) {
+    public <T extends Serializable> void setValue(String name, T value) {
         storedObjects.put(name, value);
     }
 
     @Override
-    public synchronized void removeValue(String name) {
+    public void removeValue(String name) {
         storedObjects.remove(name);
     }
 
-    synchronized void save() {
-        tempObjects = new HashMap<>(storedObjects);
+    @Override
+    public synchronized void lock() {
+        lock.lock();
     }
 
-    synchronized void load() {
-        storedObjects = tempObjects;
+    @Override
+    public synchronized void unlock() {
+        lock.unlock();
     }
 }

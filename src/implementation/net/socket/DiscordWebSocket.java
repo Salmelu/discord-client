@@ -179,7 +179,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         sendMessage0(message);
     }
 
-    private synchronized void sendMessage0(String message) {
+    synchronized void sendMessage0(String message) {
         if(session == null || !session.isOpen()) {
             logger.warn("No opened connection to socket.");
             return;

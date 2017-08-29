@@ -1,7 +1,6 @@
 package cz.salmelu.discord.implementation;
 
 import cz.salmelu.discord.Storage;
-import cz.salmelu.discord.StorageManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -11,9 +10,41 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
-public class StorageManagerImpl implements StorageManager {
+public class StorageManagerImpl {
 
-    private final HashMap<Class<?>, StorageImpl> storageMap = new HashMap<>();
+    private class NamePair {
+        private Class<?> clazz;
+        private String name;
+
+        NamePair(Class<?> clazz, String name) {
+            this.clazz = clazz;
+            this.name = name;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null) return false;
+            if (other == this) return true;
+            if (!(other instanceof NamePair))return false;
+            NamePair otherCast = (NamePair) other;
+            return otherCast.clazz.equals(clazz) && otherCast.name.equals(name);
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode() + 71 * clazz.hashCode();
+        }
+
+        Class<?> getInnerClass() {
+            return clazz;
+        }
+
+        String getInnerName() {
+            return name;
+        }
+    }
+
+    private final HashMap<NamePair, StorageImpl> storageMap = new HashMap<>();
     private static final String storagePath = "storage/";
 
     private final Thread savingThread;
@@ -38,54 +69,56 @@ public class StorageManagerImpl implements StorageManager {
         savingThread.start();
     }
 
-    @Override
-    public synchronized <T> Storage getStorage(T object) {
+    public synchronized <T> Storage getStorage(T object, String name) {
         Class<?> clazz = object.getClass();
-        if(!storageMap.containsKey(clazz)) {
-            if(!load(clazz)) {
-                storageMap.put(clazz, new StorageImpl());
+        NamePair pair = new NamePair(clazz, name);
+        if(!storageMap.containsKey(pair)) {
+            if(!load(pair)) {
+                storageMap.put(pair, new StorageImpl());
             }
         }
-        return storageMap.get(clazz);
+        return storageMap.get(pair);
     }
     
-    public synchronized void save(Class<?> clazz) {
-        final StorageImpl storage = storageMap.get(clazz);
+    public synchronized void save(NamePair pair) {
+        final StorageImpl storage = storageMap.get(pair);
         if(storage == null) return;
-        storage.save();
 
-        final String filename = storagePath + clazz.getName();
+        final String filename = storagePath + pair.getInnerClass().getName() + "::" + pair.getInnerName();
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(filename)))) {
-            oos.writeObject(storage);
+            storage.lock();
+            oos.writeObject(storage.storedObjects);
         }
         catch(IOException e) {
-            logger.warn("Failed saving storage of class " + clazz.getName(), e);
+            logger.warn("Failed saving storage of class " + pair.getInnerClass().getName(), e);
+        }
+        finally {
+            storage.unlock();
         }
     }
 
     public synchronized void saveAll() {
         logger.info( "Saving all storages...");
-        for (Map.Entry<Class<?>, StorageImpl> classEntry : storageMap.entrySet()) {
+        for (Map.Entry<NamePair, StorageImpl> classEntry : storageMap.entrySet()) {
             save(classEntry.getKey());
         }
         logger.info( "Done.");
     }
 
     @SuppressWarnings("unchecked")
-    private boolean load(Class<?> clazz) {
-        final String filename = storagePath + clazz.getName();
+    private boolean load(NamePair pair) {
+        final String filename = storagePath + pair.getInnerClass().getName() + "::" + pair.getInnerName();
         if(!Files.exists(Paths.get(filename))) {
-            logger.info("Storage file of " + clazz.getName() + " not found.");
+            logger.info("Storage file of " + pair.getInnerClass().getName() + " not found.");
             return false;
         }
         try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(filename))) {
-            final StorageImpl storage = (StorageImpl) ois.readObject();
-            storageMap.put(clazz, storage);
-            storage.load();
+            final StorageImpl storage = new StorageImpl((Map<String, Object>) ois.readObject());
+            storageMap.put(pair, storage);
             return true;
         }
         catch(IOException e) {
-            logger.warn("Failed loading storage of class " + clazz.getName(), e);
+            logger.warn("Failed loading storage of class " + pair.getInnerClass().getName(), e);
         }
         catch (ClassNotFoundException e) {
             logger.error("Exception when loading a class.", e);

@@ -33,8 +33,9 @@ public class HeartbeatGenerator {
             if(nextTick <= System.currentTimeMillis()) {
                 if(!heartbeatReceived) {
                     logger.debug("No heartbeat received, timing out.");
+                    nextTick = System.currentTimeMillis() + 5000;
                     socket.timeout();
-                    return;
+                    continue;
                 }
                 sendHeartbeat();
                 try {
@@ -94,7 +95,7 @@ public class HeartbeatGenerator {
         else {
             beat.put("d", sequenceNumber);
         }
-        socket.sendMessage(beat.toString());
+        socket.sendMessage0(beat.toString());
 
         heartbeatReceived = false;
         nextTick = System.currentTimeMillis() + interval;

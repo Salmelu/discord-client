@@ -51,7 +51,7 @@ public interface NotifyManager {
     }
 
     /**
-     * A handle used to store reference to planned notifications.
+     * A handle used to store reference to scheduled notifications.
      */
     interface NotificationHandle {
 

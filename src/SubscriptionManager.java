@@ -16,8 +16,8 @@ import cz.salmelu.discord.resources.Message;
  * <p>Example usage for a module <i>broadcast</i>:
  * <ul>
  *     <li>During initialization, call {@link #registerChannel(Channel)} on broadcast channel</li>
- *     <li>!broadcast subscribe: triggers {@link #addSubscriber(Message)}</li>
- *     <li>!broadcast unsubscribe: triggers {@link #removeSubscriber(Message)}</li>
+ *     <li>!broadcast subscribe: calls {@link #addSubscriber(Message)}</li>
+ *     <li>!broadcast unsubscribe: calls {@link #removeSubscriber(Message)}</li>
  *     <li>!broadcast message Hello: uses "Hello "
  *          + {@link #getSubscribers(Channel)} to mention all subscribed members</li>
  * </ul>

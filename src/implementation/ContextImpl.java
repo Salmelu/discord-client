@@ -6,12 +6,15 @@ public class ContextImpl implements Context {
     private final StorageManagerImpl storageManager;
     private final NotifyManagerImpl notifyManager;
     private final SubscriptionMaster subscriptionMaster;
+
     private final Class<?> owner;
+    private PermissionGuard permissionGuard = null;
+    private SubscriptionManager subscriptionManager = null;
 
     public ContextImpl() {
         storageManager = new StorageManagerImpl();
         notifyManager = new NotifyManagerImpl();
-        subscriptionMaster = new SubscriptionMaster(storageManager.getStorage(SubscriptionMaster.class));
+        subscriptionMaster = new SubscriptionMaster(storageManager);
         owner = null;
     }
 
@@ -35,9 +38,9 @@ public class ContextImpl implements Context {
     }
 
     @Override
-    public Storage getStorage() {
+    public Storage getStorage(String name) {
         if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
-        return storageManager.getStorage(owner);
+        return storageManager.getStorage(owner, name);
     }
 
     public StorageManagerImpl getStorageManagerImpl() {
@@ -52,6 +55,19 @@ public class ContextImpl implements Context {
     @Override
     public SubscriptionManager getSubscriptionManager() {
         if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
-        return subscriptionMaster.spawn(owner);
+        if(subscriptionManager == null) {
+            subscriptionManager = subscriptionMaster.spawn(owner);
+        }
+        return subscriptionManager;
+    }
+
+    @Override
+    public PermissionGuard getPermissionGuard() {
+        if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
+        if(permissionGuard == null) {
+            final Storage storage = storageManager.getStorage(PermissionGuard.class, owner.getName());
+            permissionGuard = new PermissionGuardImpl(storage);
+        }
+        return permissionGuard;
     }
 }
