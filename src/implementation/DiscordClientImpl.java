@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-public class DiscordClient {
+public class DiscordClientImpl {
 
     private ContextImpl context;
     private Dispatcher dispatcher;
@@ -23,18 +23,19 @@ public class DiscordClient {
     private class ShutdownHook extends Thread {
         @Override
         public void run() {
+            started = false;
             client.logout();
             context.getStorageManagerImpl().stop();
             context.getStorageManagerImpl().saveAll();
         }
     }
 
-    public DiscordClient() {
+    public DiscordClientImpl() {
         final String helpCommand = "?help";
 
         try {
             Properties properties = new Properties();
-            final InputStream is = DiscordClient.class.getResourceAsStream("/discord.properties");
+            final InputStream is = DiscordClientImpl.class.getResourceAsStream("/discord.properties");
             if(is == null) {
                 throw new IOException("Couldn't find discord property file.");
             }
@@ -91,20 +92,4 @@ public class DiscordClient {
     public boolean isStarted() {
         return started;
     }
-
-    public static void main(String[] args) {
-        final DiscordClient client = new DiscordClient();
-        if(!client.isStarted()) {
-            System.err.println("Client couldn't start because of some issues, exiting.");
-            System.exit(1);
-        }
-        try {
-            Thread.sleep(Integer.MAX_VALUE);
-        }
-        catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    }
-
-
 }

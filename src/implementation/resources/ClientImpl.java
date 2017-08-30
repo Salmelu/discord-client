@@ -168,6 +168,12 @@ public class ClientImpl implements Client {
     }
 
     @Override
+    public void updateStatus(String gameName, Long idleSince) {
+        if(getSocket() == null) return;
+        getSocket().statusUpdate(gameName, idleSince);
+    }
+
+    @Override
     public synchronized List<Server> getServers() {
         return serverList;
     }

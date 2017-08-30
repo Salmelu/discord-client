@@ -88,7 +88,7 @@
   <!-- Modules -->
   
   
-  <!-- Module DiscordClient -->
+  <!-- Module DiscordClientImpl -->
   
   <dirname property="module.discordclient.basedir" file="${ant.file}"/>
   

@@ -61,7 +61,22 @@ public class RoleImpl implements Role {
 
     @Override
     public String getMention() {
-        return "<@&" + getId() + ">";
+        return isMentionable() ? "<@&" + getId() + ">" : null;
+    }
+
+    @Override
+    public int getColor() {
+        return originalObject.getColor();
+    }
+
+    @Override
+    public boolean isMentionable() {
+        return originalObject.isMentionable();
+    }
+
+    @Override
+    public boolean isSeparate() {
+        return originalObject.isPinned();
     }
 
     @Override

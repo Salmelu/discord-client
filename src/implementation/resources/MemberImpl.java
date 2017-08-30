@@ -164,7 +164,7 @@ public class MemberImpl implements Member {
     @Override
     public void moveChannel(ServerChannel newChannel) {
         if(!newChannel.isVoice() || !newChannel.getServer().equals(getServer())) {
-            throw new PermissionDeniedException("Invalid channel id given.");
+            throw new IllegalArgumentException("Invalid channel id given.");
         }
         if(!server.checkPermission(Permission.VOICE_MOVE)) {
             throw new PermissionDeniedException("This application cannot move voice channel users of this server.");

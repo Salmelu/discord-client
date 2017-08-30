@@ -32,6 +32,9 @@ public class NameHelper {
 
     /**
      * <p>Checks if the given name is a valid user name or nickname according to discord rules.</p>
+     * <p>Discord names must be between 2 and 32 characters long,
+     * must not contain some special characters (@, #, :, ```)
+     * and must not be equal to keywords (discordtag, here, everyone).</p>
      * @param name checked name
      * @return true if given name can be set as a nickname or username
      */

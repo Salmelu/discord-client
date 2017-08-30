@@ -142,7 +142,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public String getTopic() {
-        return originalObject.getTopic();
+        return isVoice() ? null : originalObject.getTopic();
     }
 
     @Override
@@ -156,8 +156,23 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
+    public int getBitrate() {
+        return isVoice() ? originalObject.getBitrate() : 0;
+    }
+
+    @Override
+    public int getUserLimit() {
+        return isVoice() ? originalObject.getUserLimit() : 0;
+    }
+
+    @Override
     public Server getServer() {
         return server;
+    }
+
+    @Override
+    public Set<Permission> getPermissions() {
+        return Collections.unmodifiableSet(currentPermissions);
     }
 
     @Override

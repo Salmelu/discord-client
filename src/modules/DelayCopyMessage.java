@@ -13,14 +13,14 @@ public class DelayCopyMessage implements MessageListener {
 
     public DelayCopyMessage(Context context) {
         this.context = context;
-        this.storage = context.getStorage();
+        this.storage = context.getStorage("main");
         if (!storage.hasValue("last"))
             storage.setValue("last", "none");
     }
 
     @Override
     public boolean matchMessage(Message message) {
-        return false; /*message.getRawText().startsWith("+");*/
+        return message.getRawText().startsWith("!?");
     }
 
     @Override
@@ -35,6 +35,6 @@ public class DelayCopyMessage implements MessageListener {
 
     @Override
     public String getName() {
-        return "delaycopy";
+        return "delay-copy";
     }
 }

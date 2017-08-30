@@ -2,6 +2,9 @@ package cz.salmelu.discord.resources;
 
 import java.util.EnumSet;
 
+/**
+ * <p>A permission granted by server owner to server members.</p>
+ */
 public enum Permission {
     CREATE_INSTANT_INVITE(0x00000001),
     KICK_MEMBERS(0x00000002),
@@ -31,16 +34,26 @@ public enum Permission {
     MANAGE_WEBHOOKS(0x20000000),
     MANAGE_EMOJIS(0x40000000);
 
+    /** Internal bit value. */
     private final long value;
 
     Permission(long value) {
         this.value = value;
     }
 
+    /**
+     * Converts permission into it's bit field representation.
+     * @return number with correct bit set
+     */
     public long getValue() {
         return value;
     }
 
+    /**
+     * Converts a value into a set of permissions.
+     * @param value value with permission bits set
+     * @return set of permissions
+     */
     public static EnumSet<Permission> getPermissions(long value) {
         EnumSet<Permission> permissions = EnumSet.noneOf(Permission.class);
         for (Permission permission : Permission.values()) {
@@ -51,6 +64,11 @@ public enum Permission {
         return permissions;
     }
 
+    /**
+     * Converts a set of permissions into one number with correct bits set.
+     * @param permissions set of permissions
+     * @return converted value
+     */
     public static long convertToValue(EnumSet<Permission> permissions) {
         long value = 0;
         for (Permission permission : permissions) {

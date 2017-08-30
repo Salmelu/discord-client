@@ -113,6 +113,7 @@ public class ServerImpl implements Server {
         disabled = true;
     }
 
+    @Override
     public boolean isDisabled() {
         return disabled;
     }

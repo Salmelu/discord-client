@@ -7,7 +7,7 @@ import cz.salmelu.discord.resources.*;
 public class CopyMessage implements MessageListener {
     @Override
     public boolean matchMessage(Message message) {
-        return message.getText().trim().equals("+emoji");
+        return message.getText().trim().equals("+smile");
     }
 
     @Override
@@ -17,6 +17,6 @@ public class CopyMessage implements MessageListener {
 
     @Override
     public String getName() {
-        return "???";
+        return "smile";
     }
 }
