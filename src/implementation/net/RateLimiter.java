@@ -31,7 +31,7 @@ public class RateLimiter {
     private final Map<String, ResetRemainPair> serverLimits;
     private final Map<String, ResetRemainPair> endpointLimits;
 
-    private long globalLimit;
+    private volatile long globalLimit;
 
     public RateLimiter() {
         gatewayGuard = new ArrayDeque<>();
@@ -94,12 +94,22 @@ public class RateLimiter {
         if(map.containsKey(id)) {
             final ResetRemainPair pair = map.get(id);
             if(pair.remaining > 0) {
+                --pair.remaining;
                 return 0;
             }
             else {
                 final long reset = pair.reset - System.currentTimeMillis();
-                return reset < 0 ? 0 : reset;
+                if(reset > 0) {
+                    return reset;
+                }
+                // If another request comes, wait until we get new information how long we have to wait
+                pair.reset = System.currentTimeMillis() + 500;
+                return 0;
             }
+        }
+        else {
+            // Allow first, stall second until we get some info about the limit
+            map.put(id, new ResetRemainPair(System.currentTimeMillis() + 500, 0));
         }
         return 0;
     }
@@ -116,7 +126,7 @@ public class RateLimiter {
         synchronized (restGuard) {
             updateGlobalLimit();
             if (globalLimit != -1) {
-                long retry = globalLimit - System.currentTimeMillis(); // we are limitted globally
+                long retry = globalLimit - System.currentTimeMillis(); // we are limited globally
                 if (retry > 0) return retry;
             }
 
@@ -161,7 +171,6 @@ public class RateLimiter {
     public void updateLimitRetry(Endpoint endpoint, long retryAfter) {
         updateLimitInner(endpoint, System.currentTimeMillis() + retryAfter, 0);
     }
-
 
     public void globalLimitExceeded(long retry) {
         globalLimit = System.currentTimeMillis() + retry;
