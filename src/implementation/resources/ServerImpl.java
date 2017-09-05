@@ -1,10 +1,8 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.NameHelper;
-import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.*;
 import cz.salmelu.discord.implementation.json.resources.*;
 import cz.salmelu.discord.implementation.json.response.ServerMemberUpdateResponse;
-import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
 import cz.salmelu.discord.resources.*;
@@ -12,6 +10,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.*;
+import java.util.concurrent.Future;
 
 public class ServerImpl implements Server {
 
@@ -262,10 +261,10 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public void leave() {
+    public Future<RequestResponse> leave(AsyncCallback callback) {
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.USER).addElement("@me")
                                       .addElement("guilds").addElement(getId()).build();
-        getClient().getRequester().deleteRequest(endpoint);
+        return getClient().getRequester().deleteRequestAsync(endpoint, callback);
     }
 
     @Override
@@ -349,13 +348,13 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public void kickMember(Member member) {
+    public Future<RequestResponse> kickMember(Member member, AsyncCallback callback) {
         if(!getPermissions().contains(Permission.KICK_MEMBERS)) {
             throw new PermissionDeniedException("This application cannot kick members on this server.");
         }
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("members").addElement(member.getId()).build();
-        client.getRequester().deleteRequest(endpoint);
+        return client.getRequester().deleteRequestAsync(endpoint, callback);
     }
 
     @Override
@@ -381,12 +380,12 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public void banMember(Member member, int messageDays) {
-        banUser(member.getUser(), messageDays);
+    public Future<RequestResponse> banMember(Member member, int messageDays, AsyncCallback callback) {
+        return banUser(member.getUser(), messageDays, callback);
     }
 
     @Override
-    public void banUser(User user, int messageDays) {
+    public Future<RequestResponse> banUser(User user, int messageDays, AsyncCallback callback) {
         if(messageDays < 0 || messageDays > 7) {
             throw new IllegalArgumentException("Message days must be a value between 0 and 7.");
         }
@@ -399,21 +398,21 @@ public class ServerImpl implements Server {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("bans").addElement(user.getId()).build();
-        client.getRequester().putRequest(endpoint, jsonObject);
+        return client.getRequester().putRequestAsync(endpoint, jsonObject, callback);
     }
 
     @Override
-    public void unbanUser(User user) {
+    public Future<RequestResponse> unbanUser(User user, AsyncCallback callback) {
         if(!getPermissions().contains(Permission.BAN_MEMBERS)) {
             throw new PermissionDeniedException("This application cannot unban members on this server.");
         }
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("bans").addElement(user.getId()).build();
-        client.getRequester().deleteRequest(endpoint);
+        return client.getRequester().deleteRequestAsync(endpoint, callback);
     }
 
     @Override
-    public void changeMyNickname(String nickname) {
+    public Future<RequestResponse> changeMyNickname(String nickname, AsyncCallback callback) {
         nickname = nickname.trim();
         if(!NameHelper.validateName(nickname)) {
             throw new IllegalArgumentException("Invalid nickname requested.");
@@ -425,22 +424,23 @@ public class ServerImpl implements Server {
         request.put("nick", nickname);
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getId())
                 .addElement("members").addElement("@me").addElement("nick").build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
     @Override
-    public void createTextChannel(String name, List<PermissionOverwrite> overwrites) {
+    public Future<RequestResponse> createTextChannel(String name, List<PermissionOverwrite> overwrites, AsyncCallback callback) {
         if(!getPermissions().contains(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application cannot create channels on this server.");
         }
         final JSONObject object = new JSONObject();
         object.put("name", Channel.ChannelType.SERVER_TEXT);
         object.put("type", "text");
-        createChannelCommon(object, overwrites);
+        return createChannelCommon(object, overwrites, callback);
     }
 
     @Override
-    public void createVoiceChannel(String name, int bitrate, int userLimit, List<PermissionOverwrite> overwrites) {
+    public Future<RequestResponse> createVoiceChannel(String name, int bitrate, int userLimit, List<PermissionOverwrite> overwrites,
+                                   AsyncCallback callback) {
         if(!getPermissions().contains(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application cannot create channels on this server.");
         }
@@ -449,10 +449,11 @@ public class ServerImpl implements Server {
         object.put("type", Channel.ChannelType.SERVER_VOICE);
         object.put("bitrate", bitrate);
         object.put("user_limit", userLimit);
-        createChannelCommon(object, overwrites);
+        return createChannelCommon(object, overwrites, callback);
     }
 
-    private void createChannelCommon(JSONObject object, List<PermissionOverwrite> overwrites) {
+    private Future<RequestResponse> createChannelCommon(JSONObject object, List<PermissionOverwrite> overwrites,
+                                                        AsyncCallback callback) {
         final JSONArray overwritesArray = new JSONArray();
         overwrites.forEach(overwrite -> {
             PermissionOverwriteObject poo = new PermissionOverwriteObject();
@@ -464,20 +465,21 @@ public class ServerImpl implements Server {
         });
 
         object.put("permission_overwrites", overwritesArray);
-        client.getRequester().postRequest(
-                EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build());
+        return client.getRequester().postRequestAsync(
+                EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build(), callback);
     }
 
     @Override
-    public void deleteChannel(ServerChannel channel) {
+    public Future<RequestResponse> deleteChannel(ServerChannel channel, AsyncCallback callback) {
         if(!channelList.contains(channel)) {
             throw new IllegalArgumentException("Given channel doesn't belong this server.");
         }
-        channel.deleteChannel();
+        return channel.deleteChannel(callback);
     }
 
     @Override
-    public void createRole(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
+    public Future<RequestResponse> createRole(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable,
+                           AsyncCallback callback) {
         if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot create roles on this server.");
         }
@@ -501,11 +503,12 @@ public class ServerImpl implements Server {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("roles").build();
-        client.getRequester().postRequest(endpoint, jsonObject);
+        return client.getRequester().postRequestAsync(endpoint, jsonObject, callback);
     }
 
     @Override
-    public void updateRole(Role role, String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
+    public Future<RequestResponse> updateRole(Role role, String name, List<Permission> permissions, int color, boolean separate,
+                                              boolean mentionable, AsyncCallback callback) {
         if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles on this server.");
         }
@@ -532,11 +535,11 @@ public class ServerImpl implements Server {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("roles").build();
-        client.getRequester().patchRequest(endpoint, jsonObject);
+        return client.getRequester().patchRequestAsync(endpoint, jsonObject, callback);
     }
 
     @Override
-    public void deleteRole(Role role) {
+    public Future<RequestResponse> deleteRole(Role role, AsyncCallback callback) {
         if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot delete roles on this server.");
         }
@@ -546,7 +549,7 @@ public class ServerImpl implements Server {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("roles").addElement(role.getId()).build();
-        client.getRequester().deleteRequest(endpoint);
+        return client.getRequester().deleteRequestAsync(endpoint, callback);
     }
 
     @Override
@@ -575,7 +578,7 @@ public class ServerImpl implements Server {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(getId()).addElement("prune").addParam("days", String.valueOf(days)).build();
-        JSONObject result = client.getRequester().postRequestAsObject(endpoint, null);
+        JSONObject result = client.getRequester().postRequestAsObject(endpoint);
         return result.getInt("pruned");
     }
 }

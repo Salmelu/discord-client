@@ -10,7 +10,7 @@ public class DiscordClient {
     public static void main(String[] args) {
         final DiscordClientImpl client = new DiscordClientImpl();
         if(!client.isStarted()) {
-            System.err.println("Client couldn't start because of some issues, exiting.");
+            System.err.println("Client couldn't start because of some issues. Check the log.");
             System.exit(1);
         }
         try {

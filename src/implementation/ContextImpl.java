@@ -40,7 +40,7 @@ public class ContextImpl implements Context {
     @Override
     public Storage getStorage(String name) {
         if(owner == null) throw new java.lang.IllegalAccessError("Cannot invoke this method on master context.");
-        return storageManager.getStorage(owner, name);
+        return storageManager.getStorageClassed(owner, name);
     }
 
     public StorageManagerImpl getStorageManagerImpl() {

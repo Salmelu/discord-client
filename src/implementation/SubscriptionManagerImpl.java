@@ -5,6 +5,7 @@ import cz.salmelu.discord.SubscriptionManager;
 import cz.salmelu.discord.resources.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -25,7 +26,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
             storage.setValue(S_CHANNELS, new ArrayList<String>());
         }
         if(!storage.hasValue(S_SUBS)) {
-            storage.setValue(S_SUBS, new ArrayList<String>());
+            storage.setValue(S_SUBS, new HashMap<>());
         }
 
         channels = storage.getValue(S_CHANNELS);

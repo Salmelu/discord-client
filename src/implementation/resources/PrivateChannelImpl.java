@@ -1,5 +1,7 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.AsyncCallback;
+import cz.salmelu.discord.RequestResponse;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
@@ -10,6 +12,7 @@ import cz.salmelu.discord.resources.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Future;
 
 public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
 
@@ -74,10 +77,15 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
 
     @Override
     public void sendMessage(String text) {
+        sendMessage(text, null);
+    }
+
+    @Override
+    public Future<RequestResponse> sendMessage(String text, AsyncCallback callback) {
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
-        client.getRequester().postRequest(EndpointBuilder.create(Endpoint.CHANNEL)
-                .addElement(id).addElement("messages").build(), messageObject);
+        return client.getRequester().postRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
+                .addElement(id).addElement("messages").build(), messageObject, callback);
     }
 
     @Override

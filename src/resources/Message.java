@@ -1,11 +1,14 @@
 package cz.salmelu.discord.resources;
 
+import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.Emoji;
 import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.RequestResponse;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * <p>A message received by Discord servers.</p>
@@ -32,19 +35,34 @@ public interface Message {
     /**
      * <p>Changes the text of application's message into a different text.</p>
      * <p>Due to the limitations of Discord, the application can only change its own messages.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends a request to Discord server and doesn't guarantee its completion.
+     * Use {@link #edit(String, AsyncCallback)} if you want to check for completion.</p>
      * @param newText text replacing the old text
      * @throws PermissionDeniedException when the message is not owned by the application
      */
     void edit(String newText) throws PermissionDeniedException;
 
     /**
+     * <p>Changes the text of application's message into a different text.</p>
+     * <p>Due to the limitations of Discord, the application can only change its own messages.</p>
+     * <p>This method sends an asynchronous request to Discord server and doesn't await completion. Use the
+     * returned future to check for completion.</p>
+     * @param newText text replacing the old text
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
+     * @throws PermissionDeniedException when the message is not owned by the application
+     */
+    Future<RequestResponse> edit(String newText, AsyncCallback callback);
+
+    /**
      * <p>Deletes the message from the channel.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the message is someone else's and the application
      * doesn't have manage messages permission in relevant channel
      */
-    void delete() throws PermissionDeniedException;
+    Future<RequestResponse> delete(AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * Gets the instance of the channel where the message was posted
@@ -60,37 +78,46 @@ public interface Message {
 
     /**
      * <p>Adds a new reaction to the message.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param emoji added reaction
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException either when the application doesn't have read message history permission,
      * or when it doesn't have add reactions permission and there is no reaction of the same type present
      * @throws IllegalArgumentException when attempting to add the same reaction twice
      */
-    void addReaction(Emoji emoji) throws PermissionDeniedException, IllegalArgumentException;
+    Future<RequestResponse> addReaction(Emoji emoji, AsyncCallback callback)
+            throws PermissionDeniedException, IllegalArgumentException;
 
     /**
      * <p>Removes a previously added reaction from the message.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param emoji removed reaction
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the reaction wasn't added before
      */
-    void removeReaction(Emoji emoji) throws IllegalArgumentException;
+    Future<RequestResponse> removeReaction(Emoji emoji, AsyncCallback callback) throws IllegalArgumentException;
 
     /**
      * <p>Removes another user's reaction from the message.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param emoji removed reaction
      * @param user author of the removed reaction
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage messages permission
      */
-    void removeUserReaction(Emoji emoji, User user) throws PermissionDeniedException;
+    Future<RequestResponse> removeUserReaction(Emoji emoji, User user, AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Removes all reactions from the message.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage messages permission
      */
-    void removeAllReactions() throws PermissionDeniedException;
+    Future<RequestResponse> removeAllReactions(AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Gets a list of those users who added the given reaction to the message.</p>
@@ -144,7 +171,7 @@ public interface Message {
 
     /**
      * <p>Sends a message into the same channel where this message is originally from.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param reply text of the message
      * @throws PermissionDeniedException when the application doesn't have send messages permission in the channel
      */
@@ -152,15 +179,19 @@ public interface Message {
 
     /**
      * <p>Pins the message in its channel.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage messages permission in the channel
      */
-    void pin() throws PermissionDeniedException;
+    Future<RequestResponse> pin(AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Unpins the message from its channel.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage messages permission in the channel
      */
-    void unpin() throws PermissionDeniedException;
+    Future<RequestResponse> unpin(AsyncCallback callback) throws PermissionDeniedException;
 }

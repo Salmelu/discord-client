@@ -1,4 +1,4 @@
-package cz.salmelu.discord.implementation.net.rest;
+package cz.salmelu.discord;
 
 public class DiscordRequestException extends RuntimeException {
 

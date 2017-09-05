@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 
 public class StorageImpl implements Storage, Serializable {
     final Map<String, Object> storedObjects;
-    private Lock lock;
+    private Lock lock = new ReentrantLock();
 
     StorageImpl() {
         storedObjects = Collections.synchronizedMap(new HashMap<>());

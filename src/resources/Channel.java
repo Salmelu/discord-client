@@ -1,8 +1,11 @@
 package cz.salmelu.discord.resources;
 
+import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.RequestResponse;
 
 import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * Represents a generic Discord channel.
@@ -34,11 +37,21 @@ public interface Channel {
 
     /**
      * <p>Sends a new message into this channel.</p>
-     * <p>This method sends the message over network and will block until the message is sent.</p>
+     * <p>This method sends the message over network and will not wait until the message is sent.</p>
      * @param text sent text message
      * @throws PermissionDeniedException if the application doesn't have send message permissions
      */
     void sendMessage(String text) throws PermissionDeniedException;
+
+    /**
+     * <p>Sends a new message into this channel.</p>
+     * <p>This method sends the message over network and will not wait until it is sent.</p>
+     * @param text sent text message
+     * @param callback callback to call when the server request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
+     * @throws PermissionDeniedException if the application doesn't have send message permissions
+     */
+    Future<RequestResponse> sendMessage(String text, AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Gets a message in this channel with given id.</p>
@@ -118,8 +131,11 @@ public interface Channel {
     /**
      * <p>Notifies Discord that the client is typing a message.</p>
      * <p>This triggers the <i>User is typing...</i> message for other users.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      */
-    void triggerTyping();
+    Future<RequestResponse> triggerTyping(AsyncCallback callback);
 
     /**
      * Casts the channel into {@link ServerChannel} instance.
@@ -142,30 +158,36 @@ public interface Channel {
 
     /**
      * <p>Pins a specific message in the channel.</p>
-     * <p>Blocks until the request is finished.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param message pinned message
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the channel is a server channel and application doesn't have
      * manage messages permission
      */
-    void pinMessage(Message message) throws PermissionDeniedException;
+    Future<RequestResponse> pinMessage(Message message, AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Unpins a specific message in the channel.</p>
-     * <p>Blocks until the request is finished.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param message unpinned message
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the channel is a server channel and application doesn't have
      * manage messages permission
      */
-    void unpinMessage(Message message) throws PermissionDeniedException;
+    Future<RequestResponse> unpinMessage(Message message, AsyncCallback callback) throws PermissionDeniedException;
 
     /**
      * <p>Deletes this channel.</p>
      * <p>If the channel is a private channel, this call only closes the channel.</p>
-     * <p>Blocks until the request is finished.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the channel is a server channel and application doesn't have
      * manage channels permission
      */
-    void deleteChannel() throws PermissionDeniedException;
+    Future<RequestResponse> deleteChannel(AsyncCallback callback) throws PermissionDeniedException;
 
     class ChannelType {
         public static final int SERVER_TEXT = 0;

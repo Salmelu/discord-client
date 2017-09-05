@@ -1,5 +1,7 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.AsyncCallback;
+import cz.salmelu.discord.RequestResponse;
 import cz.salmelu.discord.implementation.json.resources.RoleObject;
 import cz.salmelu.discord.resources.Permission;
 import cz.salmelu.discord.resources.Role;
@@ -9,6 +11,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 public class RoleImpl implements Role {
 
@@ -85,12 +88,13 @@ public class RoleImpl implements Role {
     }
 
     @Override
-    public void update(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable) {
-        server.updateRole(this, name, permissions, color, separate, mentionable);
+    public Future<RequestResponse> update(String name, List<Permission> permissions, int color, boolean separate,
+                         boolean mentionable, AsyncCallback callback) {
+        return server.updateRole(this, name, permissions, color, separate, mentionable, callback);
     }
 
     @Override
-    public void delete() {
-        server.deleteRole(this);
+    public Future<RequestResponse> delete(AsyncCallback callback) {
+        return server.deleteRole(this, callback);
     }
 }

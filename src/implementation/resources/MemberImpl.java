@@ -1,7 +1,6 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.NameHelper;
-import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.*;
 import cz.salmelu.discord.implementation.json.resources.ServerMemberObject;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
@@ -13,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Future;
 
 public class MemberImpl implements Member {
 
@@ -92,35 +92,71 @@ public class MemberImpl implements Member {
     }
 
     @Override
-    public void addRole(Role role) throws PermissionDeniedException {
+    public Future<RequestResponse> addRole(Role role, AsyncCallback callback) throws PermissionDeniedException {
         if(roles.contains(role)) {
-            return;
+            return null;
         }
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of this server.");
         }
-        client.getRequester().putRequest(EndpointBuilder.create(Endpoint.SERVER)
+
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                roles.add(role);
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().putRequestAsync(EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(server.getId()).addElement("members").addElement(getId())
-                .addElement("roles").addElement(role.getId()).build());
-        roles.add(role);
+                .addElement("roles").addElement(role.getId()).build(), wrapped);
     }
 
     @Override
-    public void removeRole(Role role) throws PermissionDeniedException {
+    public Future<RequestResponse> removeRole(Role role, AsyncCallback callback) throws PermissionDeniedException {
         if(!roles.contains(role)) {
-            return;
+            return null;
         }
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of this server.");
         }
-        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.SERVER)
+
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                roles.remove(role);
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().deleteRequestAsync(EndpointBuilder.create(Endpoint.SERVER)
                 .addElement(server.getId()).addElement("members").addElement(getId())
-                .addElement("roles").addElement(role.getId()).build());
-        roles.remove(role);
+                .addElement("roles").addElement(role.getId()).build(), wrapped);
     }
 
     @Override
-    public void setRoles(List<Role> roles) {
+    public Future<RequestResponse> setRoles(List<Role> roles, AsyncCallback callback) {
         if(!server.checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles of this server.");
         }
@@ -134,11 +170,11 @@ public class MemberImpl implements Member {
         request.put("roles", idArray);
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
                 .addElement("members").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
     @Override
-    public void mute(boolean mute) {
+    public Future<RequestResponse> mute(boolean mute, AsyncCallback callback) {
         if(!server.checkPermission(Permission.VOICE_MUTE)) {
             throw new PermissionDeniedException("This application cannot mute users of this server.");
         }
@@ -146,11 +182,11 @@ public class MemberImpl implements Member {
         request.put("mute", mute);
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
                 .addElement("members").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
     @Override
-    public void deafen(boolean deaf) {
+    public Future<RequestResponse> deafen(boolean deaf, AsyncCallback callback) {
         if(!server.checkPermission(Permission.VOICE_DEAFEN)) {
             throw new PermissionDeniedException("This application cannot deafen users of this server.");
         }
@@ -158,11 +194,11 @@ public class MemberImpl implements Member {
         request.put("deaf", deaf);
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
                 .addElement("members").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
     @Override
-    public void moveChannel(ServerChannel newChannel) {
+    public Future<RequestResponse> moveChannel(ServerChannel newChannel, AsyncCallback callback) {
         if(!newChannel.isVoice() || !newChannel.getServer().equals(getServer())) {
             throw new IllegalArgumentException("Invalid channel id given.");
         }
@@ -173,21 +209,21 @@ public class MemberImpl implements Member {
         request.put("channel_id", newChannel.getId());
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
                 .addElement("members").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
     @Override
-    public void ban(int messageDays) {
-        server.banMember(this, messageDays);
+    public Future<RequestResponse> ban(int messageDays, AsyncCallback callback) {
+        return server.banMember(this, messageDays, callback);
     }
 
     @Override
-    public void kick() {
-        server.kickMember(this);
+    public Future<RequestResponse> kick(AsyncCallback callback) {
+        return server.kickMember(this, callback);
     }
 
     @Override
-    public void changeNickname(String nickname) {
+    public Future<RequestResponse> changeNickname(String nickname, AsyncCallback callback) {
         nickname = nickname.trim();
         if(!NameHelper.validateName(nickname)) {
             throw new IllegalArgumentException("Invalid nickname requested.");
@@ -199,7 +235,7 @@ public class MemberImpl implements Member {
         request.put("nick", nickname);
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER).addElement(getServer().getId())
                 .addElement("members").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, request);
+        return client.getRequester().patchRequestAsync(endpoint, request, callback);
     }
 
 }

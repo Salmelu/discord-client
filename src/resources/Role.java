@@ -1,9 +1,12 @@
 package cz.salmelu.discord.resources;
 
+import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
+import cz.salmelu.discord.RequestResponse;
 
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 /**
  * A role created on a server that is given to its members in order to give them specific permissions.
@@ -64,21 +67,26 @@ public interface Role {
 
     /**
      * <p>Updates the role with new values.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
      * @param name new role name
      * @param permissions new role permissions
      * @param color new role color
      * @param separate whether the role displays separately
      * @param mentionable whether the role can be mentioned
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage roles permission
      */
-    void update(String name, List<Permission> permissions, int color, boolean separate, boolean mentionable)
+    Future<RequestResponse> update(String name, List<Permission> permissions, int color, boolean separate,
+                                   boolean mentionable, AsyncCallback callback)
             throws PermissionDeniedException;
 
     /**
      * <p>Deletes the role from the server.</p>
-     * <p>This method sends a request to Discord server and therefore it blocks until it's completed.</p>
+     * <p>This method sends an asynchronous request to Discord server.</p>
+     * @param callback callback to call when the request is completed, can be null if not needed
+     * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage roles permission
      */
-    void delete() throws PermissionDeniedException;
+    Future<RequestResponse> delete(AsyncCallback callback) throws PermissionDeniedException;
 }

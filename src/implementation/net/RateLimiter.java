@@ -25,6 +25,7 @@ public class RateLimiter {
 
     private final Deque<Long> gatewayGuard;
     private final Deque<Long> gameGuard;
+    private final Object restGuard = new Object();
 
     private final Map<String, ResetRemainPair> channelLimits;
     private final Map<String, ResetRemainPair> serverLimits;
@@ -45,8 +46,10 @@ public class RateLimiter {
 
     private void cleanGameUpdateLimit() {
         // Clean the queue
-        while(gameGuard.peek() != null && gameGuard.peek() < System.currentTimeMillis() - REQUEST_INTERVAL) {
-            gameGuard.removeFirst();
+        synchronized (gameGuard) {
+            while (gameGuard.peek() != null && gameGuard.peek() < System.currentTimeMillis() - REQUEST_INTERVAL) {
+                gameGuard.removeFirst();
+            }
         }
     }
 
@@ -66,8 +69,10 @@ public class RateLimiter {
 
     private void cleanGatewayLimit() {
         // Clean the queue
-        while(gatewayGuard.peek() != null && gatewayGuard.peek() < System.currentTimeMillis() - REQUEST_INTERVAL) {
-            gatewayGuard.removeFirst();
+        synchronized (gatewayGuard) {
+            while (gatewayGuard.peek() != null && gatewayGuard.peek() < System.currentTimeMillis() - REQUEST_INTERVAL) {
+                gatewayGuard.removeFirst();
+            }
         }
     }
 
@@ -108,22 +113,24 @@ public class RateLimiter {
     }
 
     public long checkLimit(Endpoint endpoint) {
-        updateGlobalLimit();
-        if(globalLimit != -1) {
-            long retry = globalLimit - System.currentTimeMillis(); // we are limitted globally
-            if (retry > 0) return retry;
-        }
+        synchronized (restGuard) {
+            updateGlobalLimit();
+            if (globalLimit != -1) {
+                long retry = globalLimit - System.currentTimeMillis(); // we are limitted globally
+                if (retry > 0) return retry;
+            }
 
-        // look what the endpoint is
-        if(endpoint.isChannel()) {
-            return checkEndpointMap(channelLimits, endpoint.getElement(1));
-        }
-        else if(endpoint.isServer()) {
-            // FIXME: this wont work with the createServer(), but well...
-            return checkEndpointMap(serverLimits, endpoint.getElement(1));
-        }
-        else {
-            return checkEndpointMap(endpointLimits, endpoint.getBase());
+            // look what the endpoint is
+            if (endpoint.isChannel()) {
+                return checkEndpointMap(channelLimits, endpoint.getElement(1));
+            }
+            else if (endpoint.isServer()) {
+                // This wont work with the createServer(), but that feature is not needed for bots
+                return checkEndpointMap(serverLimits, endpoint.getElement(1));
+            }
+            else {
+                return checkEndpointMap(endpointLimits, endpoint.getBase());
+            }
         }
     }
 
@@ -132,16 +139,18 @@ public class RateLimiter {
     }
 
     private void updateLimitInner(Endpoint endpoint, long reset, int remaining) {
-        // look what the endpoint is
-        if(endpoint.isChannel()) {
-            updateEndpointMap(channelLimits, endpoint.getElement(1), reset, remaining);
-        }
-        else if(endpoint.isServer()) {
-            // FIXME: this wont work with the createServer(), but well...
-            updateEndpointMap(serverLimits, endpoint.getElement(1), reset, remaining);
-        }
-        else {
-            updateEndpointMap(endpointLimits, endpoint.getBase(), reset, remaining);
+        synchronized (restGuard) {
+            // look what the endpoint is
+            if (endpoint.isChannel()) {
+                updateEndpointMap(channelLimits, endpoint.getElement(1), reset, remaining);
+            }
+            else if (endpoint.isServer()) {
+                // This wont work with the createServer(), but that feature is not needed for bots
+                updateEndpointMap(serverLimits, endpoint.getElement(1), reset, remaining);
+            }
+            else {
+                updateEndpointMap(endpointLimits, endpoint.getBase(), reset, remaining);
+            }
         }
     }
 

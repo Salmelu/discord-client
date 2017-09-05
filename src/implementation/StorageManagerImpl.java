@@ -71,6 +71,10 @@ public class StorageManagerImpl {
 
     public synchronized <T> Storage getStorage(T object, String name) {
         Class<?> clazz = object.getClass();
+        return getStorageClassed(clazz, name);
+    }
+
+    public synchronized Storage getStorageClassed(Class<?> clazz, String name) {
         NamePair pair = new NamePair(clazz, name);
         if(!storageMap.containsKey(pair)) {
             if(!load(pair)) {

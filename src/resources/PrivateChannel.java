@@ -1,6 +1,10 @@
 package cz.salmelu.discord.resources;
 
+import cz.salmelu.discord.AsyncCallback;
+import cz.salmelu.discord.RequestResponse;
+
 import java.util.List;
+import java.util.concurrent.Future;
 
 /**
  * An extension of {@link Channel} to include private channel specific features.

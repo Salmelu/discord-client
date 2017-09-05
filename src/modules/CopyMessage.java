@@ -12,7 +12,7 @@ public class CopyMessage implements MessageListener {
 
     @Override
     public void onMessage(Message message) {
-        message.addReaction(Emoji.SMILE);
+        message.addReaction(Emoji.SMILE, null);
     }
 
     @Override

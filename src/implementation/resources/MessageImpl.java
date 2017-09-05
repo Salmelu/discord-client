@@ -1,8 +1,6 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.Emoji;
-import cz.salmelu.discord.PermissionDeniedException;
-import cz.salmelu.discord.implementation.json.reflector.Serializer;
+import cz.salmelu.discord.*;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
@@ -19,6 +17,7 @@ import org.slf4j.MarkerFactory;
 
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 public class MessageImpl implements Message {
@@ -119,6 +118,11 @@ public class MessageImpl implements Message {
 
     @Override
     public void edit(String newText) {
+        edit(newText, null);
+    }
+
+    @Override
+    public Future<RequestResponse> edit(String newText, AsyncCallback callback) {
         if(!getAuthor().equals(client.getMyUser())) {
             throw new PermissionDeniedException("You cannot edit messages that aren't yours.");
         }
@@ -128,11 +132,11 @@ public class MessageImpl implements Message {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getChannel().getId())
                 .addElement("messages").addElement(getId()).build();
-        client.getRequester().patchRequest(endpoint, jsonObject);
+        return client.getRequester().patchRequestAsync(endpoint, jsonObject, callback);
     }
 
     @Override
-    public void delete() {
+    public Future<RequestResponse> delete(AsyncCallback callback) {
         if(!getAuthor().equals(client.getMyUser())) {
             if(!((ServerChannelImpl) channel.toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
                 throw new PermissionDeniedException("The application doesn't have permission to delete other messages than its.");
@@ -141,7 +145,7 @@ public class MessageImpl implements Message {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getChannel().getId())
                 .addElement("messages").addElement(getId()).build();
-        client.getRequester().deleteRequest(endpoint);
+        return client.getRequester().deleteRequestAsync(endpoint, callback);
     }
 
     @Override
@@ -201,9 +205,9 @@ public class MessageImpl implements Message {
     }
 
     @Override
-    public void addReaction(Emoji emoji) {
+    public Future<RequestResponse> addReaction(Emoji emoji, AsyncCallback callback) {
         final Channel channel = getChannel();
-        ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
+        final ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
         if(reaction != null && reaction.isMine()) {
             throw new IllegalArgumentException("This message already contains application's reaction.");
         }
@@ -218,20 +222,38 @@ public class MessageImpl implements Message {
                 }
             }
         }
-        client.getRequester().putRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                if (reaction == null) {
+                    ReactionImpl newReaction = new ReactionImpl(MessageImpl.this, emoji);
+                    reactions.put(emoji.getName(), newReaction);
+                }
+                else {
+                    reaction.increment(true);
+                }
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().putRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getChannel().getId()).addElement("messages").addElement(getId())
-                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build());
-        if (reaction == null) {
-            reaction = new ReactionImpl(this, emoji);
-            reactions.put(emoji.getName(), reaction);
-        }
-        else {
-            reaction.increment(true);
-        }
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build(), wrapped);
     }
 
     @Override
-    public void removeReaction(Emoji emoji) {
+    public Future<RequestResponse> removeReaction(Emoji emoji, AsyncCallback callback) {
         ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
         if(reaction == null) {
             throw new IllegalArgumentException("This message doesn't contain that emoji.");
@@ -239,18 +261,35 @@ public class MessageImpl implements Message {
         if(!reaction.isMine()) {
             throw new IllegalArgumentException("This message doesn't contain application's reaction.");
         }
-        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                reaction.decrement(true);
+                if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().deleteRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getChannel().getId()).addElement("messages").addElement(getId())
-                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build());
-        reaction.decrement(true);
-        if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement("@me").build(), wrapped);
     }
 
     @Override
-    public void removeUserReaction(Emoji emoji, User user) {
+    public Future<RequestResponse> removeUserReaction(Emoji emoji, User user, AsyncCallback callback) {
         if(user.equals(client.getMyUser())) {
-            removeReaction(emoji);
-            return;
+            return removeReaction(emoji, callback);
         }
         if (!channel.isPrivate()) {
             final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
@@ -258,16 +297,36 @@ public class MessageImpl implements Message {
                 throw new PermissionDeniedException("This application cannot remove other user's reactions on this server.");
             }
         }
+
         ReactionImpl reaction = reactions.values().stream().filter(r -> r.getEmoji().equals(emoji)).findFirst().orElse(null);
-        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                if(reaction != null) {
+                    reaction.decrement(false);
+                    if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+                }
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().deleteRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getChannel().getId()).addElement("messages").addElement(getId())
-                .addElement("reactions").addElement(emoji.getUnicode()).addElement(user.getId()).build());
-        reaction.decrement(false);
-        if(reaction.getCount() == 0) reactions.remove(reaction.getEmoji().getName());
+                .addElement("reactions").addElement(emoji.getUnicode()).addElement(user.getId()).build(), wrapped);
     }
 
     @Override
-    public void removeAllReactions() {
+    public Future<RequestResponse> removeAllReactions(AsyncCallback callback) {
         if (!channel.isPrivate()) {
             final ServerChannelImpl serverChannel = (ServerChannelImpl) channel;
             if (!serverChannel.checkPermission(Permission.MANAGE_MESSAGES)) {
@@ -275,10 +334,27 @@ public class MessageImpl implements Message {
             }
         }
 
-        client.getRequester().deleteRequest(EndpointBuilder.create(Endpoint.CHANNEL)
+        final AsyncCallback wrapped = new AsyncCallback() {
+            @Override
+            public void completed(RequestResponse response) {
+                reactions.clear();
+                callback.completed(response);
+            }
+
+            @Override
+            public void failed(DiscordRequestException e) {
+                callback.failed(e);
+            }
+
+            @Override
+            public void cancelled() {
+                callback.cancelled();
+            }
+        };
+
+        return client.getRequester().deleteRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getChannel().getId()).addElement("messages").addElement(getId())
-                .addElement("reactions").build());
-        reactions.clear();
+                .addElement("reactions").build(), wrapped);
     }
 
     @Override
@@ -329,12 +405,12 @@ public class MessageImpl implements Message {
     }
 
     @Override
-    public void pin() {
-        getChannel().pinMessage(this);
+    public Future<RequestResponse> pin(AsyncCallback callback) {
+        return getChannel().pinMessage(this, callback);
     }
 
     @Override
-    public void unpin() {
-        getChannel().unpinMessage(this);
+    public Future<RequestResponse> unpin(AsyncCallback callback) {
+        return getChannel().unpinMessage(this, callback);
     }
 }

@@ -1,14 +1,12 @@
 package cz.salmelu.discord.implementation.resources;
 
+import cz.salmelu.discord.DiscordRequestException;
 import cz.salmelu.discord.implementation.Dispatcher;
 import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
 import cz.salmelu.discord.implementation.json.resources.UserObject;
 import cz.salmelu.discord.implementation.net.*;
-import cz.salmelu.discord.implementation.net.rest.DiscordHttpRequester;
-import cz.salmelu.discord.implementation.net.rest.DiscordRequestException;
-import cz.salmelu.discord.implementation.net.rest.Endpoint;
-import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
+import cz.salmelu.discord.implementation.net.rest.*;
 import cz.salmelu.discord.implementation.net.socket.DiscordWebSocket;
 import cz.salmelu.discord.implementation.net.socket.DiscordWebSocketState;
 import cz.salmelu.discord.resources.*;
@@ -24,7 +22,7 @@ import java.util.Map;
 
 public class ClientImpl implements Client {
     private final String botToken;
-    private final DiscordHttpRequester requester;
+    private final DiscordRequester requester;
     private final RateLimiter limiter;
     private final Serializer serializer;
     private DiscordWebSocket socket;
@@ -98,7 +96,7 @@ public class ClientImpl implements Client {
         this.botToken = token;
         this.limiter = new RateLimiter();
         this.serializer = new Serializer();
-        this.requester = new DiscordHttpRequester(botToken, serializer, limiter);
+        this.requester = new DiscordRequester(botToken, serializer, limiter);
 
         verifyUser();
     }
@@ -107,7 +105,7 @@ public class ClientImpl implements Client {
         return socket;
     }
 
-    public DiscordHttpRequester getRequester() {
+    public DiscordRequester getRequester() {
         if(socket != null && socket.getState().equals(DiscordWebSocketState.DEAD)) {
             throw new Error("Websocket died completely, killing this thread too.");
         }
