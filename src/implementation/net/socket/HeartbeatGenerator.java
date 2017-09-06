@@ -4,9 +4,16 @@ import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * <p>Takes care of sending heartbeats.</p>
+ * <p>Works from another thread and continuously sends heartbeat packets to Discord websocket.</p>
+ */
 public class HeartbeatGenerator {
 
-    private int interval = 1000;
+    /** The amount of milliseconds to stall the heartbeat if the generator is paused. */
+    private static final long PAUSED_STALL = 5000;
+
+    private int interval = 10000;
     private DiscordWebSocket socket;
     private volatile boolean active = false;
     private volatile boolean paused = false;
@@ -16,15 +23,15 @@ public class HeartbeatGenerator {
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
 
-    public HeartbeatGenerator(DiscordWebSocket socket) {
+    HeartbeatGenerator(DiscordWebSocket socket) {
         this.socket = socket;
     }
 
-    public void setInterval(int interval) {
+    void setInterval(int interval) {
         this.interval = interval;
     }
 
-    public void start() {
+    void start() {
         logger.debug("Heartbeat generator started.");
         active = true;
         heartbeatReceived = true;
@@ -33,7 +40,7 @@ public class HeartbeatGenerator {
             if(nextTick <= System.currentTimeMillis()) {
                 if(!heartbeatReceived) {
                     logger.debug("No heartbeat received, timing out.");
-                    nextTick = System.currentTimeMillis() + 5000;
+                    nextTick = System.currentTimeMillis() + PAUSED_STALL;
                     socket.timeout();
                     continue;
                 }
@@ -42,51 +49,64 @@ public class HeartbeatGenerator {
                     Thread.sleep(interval);
                 }
                 catch (InterruptedException e) {
-                    // nvm, we'll continue and see if it matters
+                    // never mind, we'll continue and see if it matters
                 }
             }
             else {
+                // not yet the time we need
                 try {
                     Thread.sleep(nextTick - System.currentTimeMillis() + 10);
                 }
                 catch (InterruptedException e) {
-                    // nvm, we'll continue and see if it matters
+                    // never mind, we'll continue and see if it matters
                 }
             }
         }
     }
 
-    public void updateSequence(int seq) {
+    /**
+     * New sequence number for the events was given by Discord.
+     * @param seq new sequence number
+     */
+    void updateSequence(int seq) {
         sequenceNumber = seq;
     }
 
-    public void stop() {
+    void stop() {
         logger.debug("Heartbeat generator stopped.");
         active = false;
     }
 
-    public void pause() {
+    void pause() {
         logger.debug("Heartbeat generator paused.");
         paused = true;
     }
 
-    public void resume(boolean ack) {
+    void resume(boolean ack) {
         logger.debug("Heartbeat generator resumed (ack = " + ack + ").");
         heartbeatReceived = ack;
         paused = false;
     }
 
-    public void heartbeatAck() {
+    /**
+     * Server acknowledged client's heartbeat packet.
+     */
+    void heartbeatAck() {
         heartbeatReceived = true;
     }
 
+    /**
+     * Sends a heartbeat to Discord server.
+     */
     void sendHeartbeat() {
         if(paused) {
             logger.debug("Stalling heartbeat because of paused generator.");
-            nextTick = System.currentTimeMillis() + 5000;
+            nextTick = System.currentTimeMillis() + PAUSED_STALL;
             return;
         }
         logger.debug("Sending heartbeat to websocket.");
+
+        // Heartbeat object - it is a bit special so it's made here on purpose
         JSONObject beat = new JSONObject();
         beat.put("op", DiscordSocketMessage.HEARTBEAT);
         if(sequenceNumber == null) {
@@ -95,7 +115,9 @@ public class HeartbeatGenerator {
         else {
             beat.put("d", sequenceNumber);
         }
-        socket.sendMessage0(beat.toString());
+
+        // Send the message and bypass some of the checks
+        socket.sendMessage0(beat.toString(), true);
 
         heartbeatReceived = false;
         nextTick = System.currentTimeMillis() + interval;

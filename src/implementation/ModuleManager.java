@@ -16,7 +16,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ModuleManager {
+/**
+ * Handles loading and storing all modules specified in configuration files.
+ */
+class ModuleManager {
 
     private final List<Initializer> initializers = new ArrayList<>();
     private final List<MessageListener> messageListeners = new ArrayList<>();
@@ -27,13 +30,13 @@ public class ModuleManager {
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
 
-    public ModuleManager(ContextImpl context) {
+    ModuleManager(ContextImpl context) {
         this.context = context;
         logger.debug("Initialized.");
     }
 
-    public void addModule(Class<?> moduleClass) throws IllegalArgumentException {
-        Object module = null;
+    private void addModule(Class<?> moduleClass) throws IllegalArgumentException {
+        Object module;
         Constructor<?> constructor = null;
 
         logger.debug("Processing class " + moduleClass.getName() + ".");
@@ -77,7 +80,7 @@ public class ModuleManager {
         messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
     }
 
-    public void loadModules(List<String> moduleList) throws IllegalArgumentException {
+    void loadModules(List<String> moduleList) throws IllegalArgumentException {
         boolean failing = false;
         for (String className : moduleList) {
             try {
@@ -87,35 +90,36 @@ public class ModuleManager {
             catch (ClassNotFoundException e) {
                 System.err.println("Could not find class " + className);
                 failing = true;
+                break;
             }
         }
 
         if(failing) {
-            throw new IllegalArgumentException("Some of the classes couldn't been loaded.");
+            throw new IllegalArgumentException("Some of the classes couldn't be loaded.");
         }
     }
 
-    public List<Initializer> getInitializers() {
+    List<Initializer> getInitializers() {
         return initializers;
     }
 
-    public List<MessageListener> getMessageListeners() {
+    List<MessageListener> getMessageListeners() {
         return messageListeners;
     }
 
-    public MessageListener getMessageListener(String name) {
+    MessageListener getMessageListener(String name) {
         return messageListenersByName.get(name);
     }
 
-    public List<UserActionListener> getUserActionListeners() {
+    List<UserActionListener> getUserActionListeners() {
         return actionListeners;
     }
 
-    public List<ServerListener> getServerListeners() {
+    List<ServerListener> getServerListeners() {
         return serverListeners;
     }
 
-    public String generateCommandList() {
+    String generateCommandList() {
         final String commandList = messageListeners.stream().filter(MessageListener::isVisibleInHelp)
                 .map(MessageListener::getName).collect(Collectors.joining(", "));
         return "```\nAvailable commands: " + commandList + "\n```\n"

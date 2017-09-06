@@ -9,6 +9,9 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
+/**
+ * Serializes an instance of a Java object into a {@link JSONObject}.
+ */
 class Writer {
 
     private final Serializer serializer;
@@ -17,10 +20,18 @@ class Writer {
         this.serializer = serializer;
     }
 
+    /**
+     * Writes a single field into the serializer.
+     * @param written object being written
+     * @param json resulting json object
+     * @param fieldName name of written field
+     * @param method getter for the field
+     */
     void writeField(Object written, JSONObject json, String fieldName, Method method) {
         final Class<?> type = method.getReturnType();
         try {
             if(type.isArray()) {
+                // we have an array, we need to make our own list and concatenate them
                 final Object[] results = (Object[]) method.invoke(written);
                 if(results != null) {
                     final Collection<Object> strings = Arrays.stream(results).map(o
@@ -29,6 +40,7 @@ class Writer {
                 }
             }
             else {
+                // It's a single object, process
                 final Object result = method.invoke(written);
                 final Object converted = writeSingleField(result, type);
                 json.put(fieldName, converted);
@@ -39,6 +51,12 @@ class Writer {
         }
     }
 
+    /**
+     * Converts an object into another object, that is writable by JSONObject.
+     * @param written object being converted
+     * @param type type of converted object
+     * @return converted object
+     */
     private Object writeSingleField(Object written, Class<?> type) {
         if(written == null) {
             return JSONObject.NULL;
@@ -56,6 +74,7 @@ class Writer {
             return written;
         }
         else if(type.isEnum()) {
+            // Handle with caution, we may have a different name
             try {
                 MappedName annotation = type.getField(written.toString()).getAnnotation(MappedName.class);
                 if(annotation != null) {
@@ -73,6 +92,7 @@ class Writer {
             return written.toString();
         }
         else if(MappedObject.class.isAssignableFrom(type)) {
+            // Another MappedObject inside, recursion
             return serializer.serialize(written);
         }
         else {

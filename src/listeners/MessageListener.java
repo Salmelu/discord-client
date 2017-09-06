@@ -1,9 +1,6 @@
 package cz.salmelu.discord.listeners;
 
-import cz.salmelu.discord.resources.DeletedMessage;
-import cz.salmelu.discord.resources.Message;
-import cz.salmelu.discord.resources.Reaction;
-import cz.salmelu.discord.resources.User;
+import cz.salmelu.discord.resources.*;
 
 import java.util.List;
 
@@ -61,6 +58,15 @@ public interface MessageListener extends Initializer {
      * @param user the user whose reaction was removed
      */
     default void onReactionRemove(Reaction reaction, User user) {
+
+    }
+
+    /**
+     * Called when someone pins or unpins a message in the channel.
+     * This is not called when a pinned message is deleted.
+     * @param channel relevant channel
+     */
+    default void onPinsChange(Channel channel) {
 
     }
 

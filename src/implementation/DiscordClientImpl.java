@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
+/**
+ * Main class loading the properties and settings and initializing all the required objects.
+ */
 public class DiscordClientImpl {
 
     private ContextImpl context;
@@ -31,7 +34,6 @@ public class DiscordClientImpl {
     }
 
     public DiscordClientImpl() {
-        final String helpCommand = "?help";
 
         try {
             Properties properties = new Properties();
@@ -48,6 +50,7 @@ public class DiscordClientImpl {
 
             final boolean ignoreBot = Boolean.parseBoolean(properties.getProperty("ignoreBot"));
             final boolean ignoreSelf = Boolean.parseBoolean(properties.getProperty("ignoreSelf"));
+            final String helpCommand = properties.getProperty("helpCommand");
 
             context = new ContextImpl();
             client = new ClientImpl(token);
@@ -65,7 +68,9 @@ public class DiscordClientImpl {
             for (String classFile : classFiles.split(",")) {
                 final InputStream resource = getClass().getResourceAsStream("/" + classFile);
                 try(BufferedReader reader = new BufferedReader(new InputStreamReader(resource))) {
-                    moduleNames.addAll(reader.lines().collect(Collectors.toList()));
+                    moduleNames.addAll(reader.lines()
+                            .filter(l -> !(l.matches("\\s*") || l.startsWith("#")))
+                            .collect(Collectors.toList()));
                 }
             }
 

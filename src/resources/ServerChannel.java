@@ -1,6 +1,5 @@
 package cz.salmelu.discord.resources;
 
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.RequestResponse;
 
@@ -64,60 +63,55 @@ public interface ServerChannel extends Channel {
      * <p>Changes channel's name.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param newName a new channel's name (2-100 characters)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the name is of invalid length
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      */
-    Future<RequestResponse> changeName(String newName, AsyncCallback callback);
+    Future<RequestResponse> changeName(String newName);
 
     /**
      * <p>Changes channel's topic.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param newTopic a new channel's topic (0-1024 characters)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the topic is of invalid length
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      * or if the channel is not a text channel
      */
-    Future<RequestResponse> changeTopic(String newTopic, AsyncCallback callback);
+    Future<RequestResponse> changeTopic(String newTopic);
 
     /**
      * <p>Changes channel's position in server channel list.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param newPosition a new channel's position
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the position is a negative number
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      */
-    Future<RequestResponse> changePosition(int newPosition, AsyncCallback callback);
+    Future<RequestResponse> changePosition(int newPosition);
 
     /**
      * <p>Changes channel's bitrate.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param newBitRate a new channel's bitrate (8000-96000)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the bitrate is a not allowed number
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      * or if the channel is not a voice channel
      */
-    Future<RequestResponse> changeBitrate(int newBitRate, AsyncCallback callback)
+    Future<RequestResponse> changeBitrate(int newBitRate)
             throws IllegalArgumentException, PermissionDeniedException;
 
     /**
      * <p>Changes channel's user limit.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param newUserLimit a new user limit (0-99)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the user limit is a not allowed number
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      * or if the channel is not a voice channel
      */
-    Future<RequestResponse> changeUserLimit(int newUserLimit, AsyncCallback callback)
+    Future<RequestResponse> changeUserLimit(int newUserLimit)
             throws IllegalArgumentException, PermissionDeniedException;
 
     /**
@@ -126,13 +120,12 @@ public interface ServerChannel extends Channel {
      * @param newName a new channel's name (2-100 characters)
      * @param newTopic a new channel's topic (0-1024 characters)
      * @param newPosition a new channel's position
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when either of the arguments is invalid
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      */
     Future<RequestResponse> editTextChannel(String newName, String newTopic,
-                                            int newPosition, AsyncCallback callback);
+                                            int newPosition);
 
     /**
      * <p>Updates a voice channel</p>
@@ -141,13 +134,12 @@ public interface ServerChannel extends Channel {
      * @param newPosition a new channel's position
      * @param newBitRate a new channel's bitrate (8000-96000)
      * @param newUserLimit a new user limit (0-99)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when either of the arguments is invalid
      * @throws PermissionDeniedException if the application doesn't have manage channel permission for this channel
      */
     Future<RequestResponse> editVoiceChannel(String newName, int newPosition, int newBitRate,
-                                             int newUserLimit, AsyncCallback callback);
+                                             int newUserLimit);
 
     /**
      * <p>Updates channel permission overwrites</p>
@@ -156,23 +148,20 @@ public interface ServerChannel extends Channel {
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param old old channel's overwrites
      * @param replaced new channel's overwrites
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException when the overwrites type doesn't match
      * @throws PermissionDeniedException if the application doesn't have manage roles permission for this channel
      */
-    Future<RequestResponse> updatePermissionOverwrites(PermissionOverwrite old, PermissionOverwrite replaced,
-                                                       AsyncCallback callback);
+    Future<RequestResponse> updatePermissionOverwrites(PermissionOverwrite old, PermissionOverwrite replaced);
 
     /**
      * <p>Delete channel's permission overwrites.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param overwrites deleted overwrites
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission for this channel
      */
-    Future<RequestResponse> deletePermissionOverwrites(PermissionOverwrite overwrites, AsyncCallback callback)
+    Future<RequestResponse> deletePermissionOverwrites(PermissionOverwrite overwrites)
             throws PermissionDeniedException;
 
     /**
@@ -184,22 +173,20 @@ public interface ServerChannel extends Channel {
     String getMention();
 
     /**
-     * <p>Deletes a list of messages in the channel.</p>
+     * <p>Deletes a group of messages in the channel.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param messages a list of deleted messages
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage messages permission for this channel
      */
-    Future<RequestResponse> bulkDeleteMessages(List<Message> messages, AsyncCallback callback);
+    Future<RequestResponse> bulkDeleteMessages(List<Message> messages);
 
     /**
-     * <p>Deletes a list of messages in the channel specified by their ids.</p>
+     * <p>Deletes a group of messages in the channel specified by their ids.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param messageIds a list of deleted messages' ids
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage messages permission for this channel
      */
-    Future<RequestResponse> bulkDeleteMessagesByIds(List<String> messageIds, AsyncCallback callback);
+    Future<RequestResponse> bulkDeleteMessagesByIds(List<String> messageIds);
 }

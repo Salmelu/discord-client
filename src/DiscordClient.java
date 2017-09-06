@@ -7,6 +7,10 @@ import cz.salmelu.discord.implementation.DiscordClientImpl;
  * <p>Initializes the Discord client and suspends the main thread.</p>
  */
 public class DiscordClient {
+    public static final String LIB_NAME = "salmelu-discord";
+    public static final String LIB_VERSION = "0.0.1";
+    public static final String LIB_URL = "salmelu.cz";
+
     public static void main(String[] args) {
         final DiscordClientImpl client = new DiscordClientImpl();
         if(!client.isStarted()) {

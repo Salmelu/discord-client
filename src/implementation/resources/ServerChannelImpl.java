@@ -1,6 +1,5 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.RequestResponse;
 import cz.salmelu.discord.implementation.json.resources.ChannelObject;
@@ -179,60 +178,60 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
-    public Future<RequestResponse> changeName(String newName, AsyncCallback callback) {
-        return editChannelCommon(newName, null, -1, -1, -1, callback);
+    public Future<RequestResponse> changeName(String newName) {
+        return editChannelCommon(newName, null, -1, -1, -1);
     }
 
     @Override
-    public Future<RequestResponse> changeTopic(String newTopic, AsyncCallback callback) {
+    public Future<RequestResponse> changeTopic(String newTopic) {
         if(originalObject.getType() != ChannelType.SERVER_TEXT) {
             throw new PermissionDeniedException("You can only set topic in text channels.");
         }
-        return editChannelCommon(null, newTopic, -1, -1, -1, callback);
+        return editChannelCommon(null, newTopic, -1, -1, -1);
     }
 
     @Override
-    public Future<RequestResponse> changePosition(int newPosition, AsyncCallback callback) {
-        return editChannelCommon(null, null, newPosition, -1, -1, callback);
+    public Future<RequestResponse> changePosition(int newPosition) {
+        return editChannelCommon(null, null, newPosition, -1, -1);
     }
 
     @Override
-    public Future<RequestResponse> changeBitrate(int newBitRate, AsyncCallback callback)
+    public Future<RequestResponse> changeBitrate(int newBitRate)
             throws IllegalArgumentException, PermissionDeniedException {
         if(originalObject.getType() != ChannelType.SERVER_VOICE) {
             throw new PermissionDeniedException("You can only set bitrate in voice channels.");
         }
-        return editChannelCommon(null, null, -1, newBitRate, -1, callback);
+        return editChannelCommon(null, null, -1, newBitRate, -1);
     }
 
     @Override
-    public Future<RequestResponse> changeUserLimit(int newUserLimit, AsyncCallback callback)
+    public Future<RequestResponse> changeUserLimit(int newUserLimit)
             throws IllegalArgumentException, PermissionDeniedException {
         if(originalObject.getType() != ChannelType.SERVER_VOICE) {
             throw new PermissionDeniedException("You can only set user limit in voice channels.");
         }
-        return editChannelCommon(null, null, -1, -1, newUserLimit, callback);
+        return editChannelCommon(null, null, -1, -1, newUserLimit);
     }
 
     @Override
     public Future<RequestResponse> editTextChannel(String newName, String newTopic,
-                                                   int newPosition, AsyncCallback callback) {
+                                                   int newPosition) {
         if(originalObject.getType() != ChannelType.SERVER_TEXT) {
             throw new PermissionDeniedException("This channel is not a text channel.");
         }
-        return editChannelCommon(newName, newTopic, newPosition, -1, -1, callback);
+        return editChannelCommon(newName, newTopic, newPosition, -1, -1);
     }
 
     @Override
-    public Future<RequestResponse> editVoiceChannel(String newName, int newPosition, int newBitrate, int newUserLimit, AsyncCallback callback) {
+    public Future<RequestResponse> editVoiceChannel(String newName, int newPosition, int newBitrate, int newUserLimit) {
         if(originalObject.getType() != ChannelType.SERVER_VOICE) {
             throw new PermissionDeniedException("This channel is not a voice channel.");
         }
-        return editChannelCommon(newName, null, newPosition, newBitrate, newUserLimit, callback);
+        return editChannelCommon(newName, null, newPosition, newBitrate, newUserLimit);
     }
 
     private Future<RequestResponse> editChannelCommon(String name, String topic, int position, int bitrate,
-                                   int userLimit, AsyncCallback callback) {
+                                   int userLimit) {
         if(!checkPermission(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application doesn't have the permission to edit this channel.");
         }
@@ -257,12 +256,11 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         if(bitrate != -1) originalObject.setBitrate(bitrate);
         if(userLimit != -1) originalObject.setUserLimit(userLimit);
         return client.getRequester().patchRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
-                .addElement(getId()).build(), originalObject.getModifyObject(), callback);
+                .addElement(getId()).build(), originalObject.getModifyObject());
     }
 
     @Override
-    public Future<RequestResponse> updatePermissionOverwrites(PermissionOverwrite old, PermissionOverwrite replaced,
-                                                              AsyncCallback callback) {
+    public Future<RequestResponse> updatePermissionOverwrites(PermissionOverwrite old, PermissionOverwrite replaced) {
         if(!old.getType().equals(replaced.getType())) {
             throw new IllegalArgumentException("Cannot replace overwrites of different types.");
         }
@@ -277,18 +275,18 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("permissions").addElement(old.getId()).build();
-        return client.getRequester().putRequestAsync(endpoint, client.getSerializer().serialize(poo), callback);
+        return client.getRequester().putRequestAsync(endpoint, client.getSerializer().serialize(poo));
     }
 
     @Override
-    public Future<RequestResponse> deletePermissionOverwrites(PermissionOverwrite overwrites, AsyncCallback callback) {
+    public Future<RequestResponse> deletePermissionOverwrites(PermissionOverwrite overwrites) {
         if(!checkPermission(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application doesn't have the permission to change this channel's permissions.");
         }
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("permissions").addElement(overwrites.getId()).build();
-        return client.getRequester().deleteRequestAsync(endpoint, callback);
+        return client.getRequester().deleteRequestAsync(endpoint);
     }
 
     @Override
@@ -307,19 +305,14 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
-    public void sendMessage(String text) {
-        sendMessage(text, null);
-    }
-
-    @Override
-    public Future<RequestResponse> sendMessage(String text, AsyncCallback callback) {
+    public Future<RequestResponse> sendMessage(String text) {
         if(!canSendMessage()) {
             throw new PermissionDeniedException("This application doesn't have the permission to send messages to this channel.");
         }
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
         return client.getRequester().postRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL).addElement(getId())
-                .addElement("messages").build(), messageObject, callback);
+                .addElement("messages").build(), messageObject);
     }
 
     @Override
@@ -331,12 +324,12 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
-    public Future<RequestResponse> bulkDeleteMessages(List<Message> messages, AsyncCallback callback) {
-        return bulkDeleteMessagesByIds(messages.stream().map(Message::getId).collect(Collectors.toList()), callback);
+    public Future<RequestResponse> bulkDeleteMessages(List<Message> messages) {
+        return bulkDeleteMessagesByIds(messages.stream().map(Message::getId).collect(Collectors.toList()));
     }
 
     @Override
-    public Future<RequestResponse> bulkDeleteMessagesByIds(List<String> messageIds, AsyncCallback callback) {
+    public Future<RequestResponse> bulkDeleteMessagesByIds(List<String> messageIds) {
         if(!checkPermission(Permission.MANAGE_MESSAGES)) {
             throw new PermissionDeniedException("This application doesn't have the permission to delete messages in this channel.");
         }
@@ -347,34 +340,34 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("messages").addElement("bulk-delete").build();
-        return client.getRequester().postRequestAsync(endpoint, jsonObject, callback);
+        return client.getRequester().postRequestAsync(endpoint, jsonObject);
     }
 
     @Override
-    public Future<RequestResponse> pinMessage(Message message, AsyncCallback callback) {
+    public Future<RequestResponse> pinMessage(Message message) {
         if(!isPrivate()) {
             if(!((ServerChannelImpl) toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
                 throw new PermissionDeniedException("This application doesn't have the permission manage messages in this channel.");
             }
         }
-        return super.pinMessage(message, callback);
+        return super.pinMessage(message);
     }
 
     @Override
-    public Future<RequestResponse> unpinMessage(Message message, AsyncCallback callback) {
+    public Future<RequestResponse> unpinMessage(Message message) {
         if(!isPrivate()) {
             if(!((ServerChannelImpl) toServerChannel()).checkPermission(Permission.MANAGE_MESSAGES)) {
                 throw new PermissionDeniedException("This application doesn't have the permission manage messages in this channel.");
             }
         }
-        return super.unpinMessage(message, callback);
+        return super.unpinMessage(message);
     }
 
     @Override
-    public Future<RequestResponse> deleteChannel(AsyncCallback callback) {
+    public Future<RequestResponse> deleteChannel() {
         if(!checkPermission(Permission.MANAGE_CHANNELS)) {
             throw new PermissionDeniedException("This application doesn't have the permission to delete this channel.");
         }
-        return super.deleteChannel(callback);
+        return super.deleteChannel();
     }
 }

@@ -1,7 +1,6 @@
 package cz.salmelu.discord.implementation.net.rest;
 
 import com.mashape.unirest.http.async.utils.AsyncIdleConnectionMonitorThread;
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.DiscordRequestException;
 import cz.salmelu.discord.RequestResponse;
 import org.apache.http.HttpResponse;
@@ -23,14 +22,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class RestRequestSender {
+/**
+ * Takes care of establishing HTTP connections, sending REST requests and receiving responses to them.
+ */
+class RestRequestSender {
 
     private final CloseableHttpClient restClient;
     private final CloseableHttpAsyncClient asyncRestClient;
     private final Thread monitor;
     private final AsyncIdleConnectionMonitorThread asyncMonitor;
 
-    public RestRequestSender() {
+    RestRequestSender() {
         final RequestConfig config = RequestConfig.custom()
                 .setConnectTimeout(10000)
                 .setConnectionRequestTimeout(60000)
@@ -60,13 +62,14 @@ public class RestRequestSender {
             }
         };
 
+        // Initialize synchronous client
         restClient = HttpClientBuilder.create()
                 .setDefaultRequestConfig(config)
                 .setConnectionManager(syncConnectionManager)
                 .build();
         monitor.start();
 
-        // Now for the async ones
+        // Now for the asynchronous
         DefaultConnectingIOReactor ioReactor;
         PoolingNHttpClientConnectionManager asyncConnectionManager;
         try {
@@ -89,20 +92,20 @@ public class RestRequestSender {
         asyncMonitor.start();
     }
 
-    public void shutdown() throws IOException {
+    void shutdown() throws IOException {
         restClient.close();
         monitor.interrupt();
         asyncRestClient.close();
         asyncMonitor.interrupt();
     }
 
-    public RestResponse sendRequest(RestRequest request) {
+    RestResponse sendRequest(RestRequest request) {
         HttpResponse response;
         final HttpRequestBase finalRequest = request.getFinalRequest();
 
         try {
             response = restClient.execute(finalRequest);
-            RestResponse restResponse = new RestResponse(response);
+            final RestResponse restResponse = new RestResponse(response);
             finalRequest.releaseConnection();
             return restResponse;
         }
@@ -114,40 +117,28 @@ public class RestRequestSender {
         }
     }
 
-    private FutureCallback<HttpResponse> wrapCallback(Endpoint endpoint, DiscordRequester requester, AsyncCallback callback) {
+    private FutureCallback<HttpResponse> createCallback(Endpoint endpoint, DiscordRequester requester) {
         return new FutureCallback<HttpResponse>() {
             @Override
             public void completed(HttpResponse httpResponse) {
-                RestResponse restResponse = new RestResponse(httpResponse);
+                final RestResponse restResponse = new RestResponse(httpResponse);
                 requester.updateLimit(endpoint, restResponse);
-                if(callback != null) callback.completed(restResponse.toRequestResponse());
             }
 
             @Override
-            public void failed(Exception e) {
-                if(callback != null) {
-                    if (e instanceof DiscordRequestException) {
-                        callback.failed((DiscordRequestException) e);
-                    }
-                    else {
-                        callback.failed(null);
-                    }
-                }
-            }
+            public void failed(Exception e) {}
 
             @Override
-            public void cancelled() {
-                if(callback != null) callback.cancelled();
-            }
+            public void cancelled() {}
         };
     }
 
-    public Future<RequestResponse> sendAsyncRequest(RestRequest request, Endpoint endpoint,
-                                                    DiscordRequester requester, AsyncCallback callback) {
+    Future<RequestResponse> sendAsyncRequest(RestRequest request, Endpoint endpoint,
+                                                    DiscordRequester requester) {
         final HttpRequestBase finalRequest = request.getFinalRequestAsync();
         if(!asyncRestClient.isRunning()) startAsyncClient();
         final Future<HttpResponse> future =
-                asyncRestClient.execute(finalRequest, wrapCallback(endpoint, requester, callback));
+                asyncRestClient.execute(finalRequest, createCallback(endpoint, requester));
 
 		return new Future<RequestResponse>() {
 

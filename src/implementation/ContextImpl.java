@@ -2,6 +2,9 @@ package cz.salmelu.discord.implementation;
 
 import cz.salmelu.discord.*;
 
+/**
+ * Implementation of the context.
+ */
 public class ContextImpl implements Context {
     private final StorageManagerImpl storageManager;
     private final NotifyManagerImpl notifyManager;
@@ -11,13 +14,18 @@ public class ContextImpl implements Context {
     private PermissionGuard permissionGuard = null;
     private SubscriptionManager subscriptionManager = null;
 
-    public ContextImpl() {
+    ContextImpl() {
         storageManager = new StorageManagerImpl();
         notifyManager = new NotifyManagerImpl();
         subscriptionMaster = new SubscriptionMaster(storageManager);
         owner = null;
     }
 
+    /**
+     * A child instance for a specific module.
+     * @param master parent instance
+     * @param owner owning module
+     */
     private ContextImpl(ContextImpl master, Class<?> owner) {
         storageManager = master.storageManager;
         notifyManager = master.notifyManager;
@@ -25,15 +33,21 @@ public class ContextImpl implements Context {
         this.owner = owner;
     }
 
-    public void setDispatcher(Dispatcher dispatcher) {
+    void setDispatcher(Dispatcher dispatcher) {
         notifyManager.setDispatcher(dispatcher);
     }
 
-    public void startNotifyManager() {
+    void startNotifyManager() {
         notifyManager.start();
     }
 
-    public Context spawn(Class<?> owner) {
+    /**
+     * Creates a new context instance for a specific module.
+     * This is used to create personal storage.
+     * @param owner owning module
+     * @return a child instance
+     */
+    Context spawn(Class<?> owner) {
         return new ContextImpl(this, owner);
     }
 
@@ -43,7 +57,7 @@ public class ContextImpl implements Context {
         return storageManager.getStorageClassed(owner, name);
     }
 
-    public StorageManagerImpl getStorageManagerImpl() {
+    StorageManagerImpl getStorageManagerImpl() {
         return storageManager;
     }
 

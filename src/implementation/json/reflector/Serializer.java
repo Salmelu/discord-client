@@ -3,13 +3,15 @@ package cz.salmelu.discord.implementation.json.reflector;
 import org.json.JSONObject;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
 
+/**
+ * Converts Java objects into {@link JSONObject} and vice-versa.
+ */
 public class Serializer {
 
+    /** Read JSON into Object */
     private final Reader reader;
+    /** Write Object into JSON */
     private final Writer writer;
 
     public Serializer() {
@@ -17,6 +19,11 @@ public class Serializer {
         writer = new Writer(this);
     }
 
+    /**
+     * Serializes given object into JSON fields and returns created JSON object.
+     * @param object object being serialized
+     * @return serialized object
+     */
     public JSONObject serialize(Object object) {
         final JSONObject json = new JSONObject();
         final Class<?> clazz = object.getClass();
@@ -25,15 +32,24 @@ public class Serializer {
             throw new IllegalArgumentException("Cannot serialize class that is not an instance of MappedObject.");
         }
 
+        // We work with classic Java methods: isXY and getXY
         for(Method method : clazz.getDeclaredMethods()) {
             final String methodName = method.getName();
             if(!methodName.startsWith("get") && !methodName.startsWith("is")) continue;
+            // The field name is dependant on method name too
             final String fieldName = camelToSnake(methodName.substring(methodName.startsWith("is") ? 2 : 3));
             writer.writeField(object, json, fieldName, method);
         }
         return json;
     }
 
+    /**
+     * Deserializes a JSON object and creates an instance of matching Java object
+     * @param object serialized JSON object
+     * @param clazz instance of {@link Class} of the expected object
+     * @param <T> type of result
+     * @return deserialized object
+     */
     public <T> T deserialize(JSONObject object, Class<T> clazz) {
         try {
             final T result = clazz.newInstance();
@@ -53,6 +69,11 @@ public class Serializer {
         return null;
     }
 
+    /**
+     * Converts Java's camel case into JSON (and Discord's) convention, called snake case.
+     * @param str String in CamelCase
+     * @return equivalent in snake_case
+     */
     private String camelToSnake(String str) {
         StringBuilder builder = new StringBuilder(str.length() + 10);
         builder.append(Character.toLowerCase(str.charAt(0)));

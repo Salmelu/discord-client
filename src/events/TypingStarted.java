@@ -8,7 +8,9 @@ import cz.salmelu.discord.resources.User;
  */
 public interface TypingStarted {
     /**
-     * Gets the user typing the message.
+     * <p>Gets the user typing the message.</p>
+     * <p><i>Notice:</i> if the user is not loaded, this will trigger a request to servers and will block
+     * until it is completed.</p>
      * @return typing user
      */
     User getUser();

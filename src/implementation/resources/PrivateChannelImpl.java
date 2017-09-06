@@ -1,6 +1,5 @@
 package cz.salmelu.discord.implementation.resources;
 
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.RequestResponse;
 import cz.salmelu.discord.implementation.json.resources.MessageObject;
 import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
@@ -76,16 +75,11 @@ public class PrivateChannelImpl extends ChannelBase implements PrivateChannel {
     }
 
     @Override
-    public void sendMessage(String text) {
-        sendMessage(text, null);
-    }
-
-    @Override
-    public Future<RequestResponse> sendMessage(String text, AsyncCallback callback) {
+    public Future<RequestResponse> sendMessage(String text) {
         MessageObject messageObject = new MessageObject();
         messageObject.setContent(text);
         return client.getRequester().postRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
-                .addElement(id).addElement("messages").build(), messageObject, callback);
+                .addElement(id).addElement("messages").build(), messageObject);
     }
 
     @Override

@@ -3,23 +3,19 @@ package cz.salmelu.discord.implementation.net.rest;
 import cz.salmelu.discord.DiscordRequestException;
 import cz.salmelu.discord.RequestResponse;
 
-import java.util.HashMap;
-import java.util.List;
-
 public class RequestResponseImpl implements RequestResponse {
 
     private boolean successful;
     private int statusCode;
     private String statusMessage;
-    private HashMap<String, List<String>> headers;
 
-    public RequestResponseImpl(DiscordRequestException exception) {
+    RequestResponseImpl(DiscordRequestException exception) {
         this.successful = false;
         this.statusCode = exception.getResponseCode();
         this.statusMessage = exception.getMessage();
     }
 
-    public RequestResponseImpl(int statusCode, String statusMessage, HashMap<String, List<String>> headers) {
+    RequestResponseImpl(int statusCode, String statusMessage) {
         this.successful = true;
         this.statusCode = statusCode;
         this.statusMessage = statusMessage;
@@ -44,9 +40,4 @@ public class RequestResponseImpl implements RequestResponse {
     public boolean isRateLimited() {
         return getStatusCode() == 429;
     }
-
-    public HashMap<String, List<String>> getHeaders() {
-        return headers;
-    }
-
 }

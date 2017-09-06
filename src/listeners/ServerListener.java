@@ -1,9 +1,6 @@
 package cz.salmelu.discord.listeners;
 
-import cz.salmelu.discord.resources.Member;
-import cz.salmelu.discord.resources.Role;
-import cz.salmelu.discord.resources.ServerChannel;
-import cz.salmelu.discord.resources.User;
+import cz.salmelu.discord.resources.*;
 
 import java.util.List;
 
@@ -65,7 +62,7 @@ public interface ServerListener {
 
     /**
      * Called when the client receives a chunk of members.
-     * This is received as a reaction to FIXME: finish
+     * This is received as a reaction to {@link Server#loadAllMembers()}.
      * @param members list of received members
      */
     default void onMemberChunk(List<Member> members) {

@@ -10,6 +10,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Optional;
 
+/**
+ * Reads a JSONObject and creates a matching instance of Java object.
+ */
 class Reader {
     private final Serializer serializer;
 
@@ -17,7 +20,13 @@ class Reader {
         this.serializer = serializer;
     }
 
-    void readField(Object result, Method method, Object value) throws IllegalArgumentException {
+    /**
+     * Reads a value into a single class field.
+     * @param result object being created
+     * @param method used setter
+     * @param value JSON value for the object
+     */
+    void readField(Object result, Method method, Object value) {
         final Class<?> type = method.getParameterTypes()[0];
         try {
             if (value.equals(JSONObject.NULL)) {
@@ -46,6 +55,12 @@ class Reader {
         }
     }
 
+    /**
+     * Reads a single JSON value and converts it into an object which can be used as a parameter to the setter.
+     * @param type needed object class
+     * @param value read value
+     * @return converted value
+     */
     private Object readSingleValue(Class<?> type, Object value) {
         if (type.equals(int.class) || type.equals(Integer.class)) {
             return value;
@@ -80,6 +95,7 @@ class Reader {
             return OffsetDateTime.parse(value.toString());
         }
         else if (MappedObject.class.isAssignableFrom(type)) {
+            // we need to recurse
             return serializer.deserialize((JSONObject) value, type);
         }
         else {

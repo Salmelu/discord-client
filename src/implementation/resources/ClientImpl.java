@@ -56,7 +56,7 @@ public class ClientImpl implements Client {
         socket.connect(uri);
     }
 
-    public void verifyUser() {
+    private void verifyUser() {
         try {
             JSONObject userObject = getRequester().getRequestAsObject(Endpoint.MY_USER);
             myUser = new UserImpl(this, serializer.deserialize(userObject, UserObject.class));
@@ -84,7 +84,6 @@ public class ClientImpl implements Client {
         userList.clear();
         usersById.clear();
         myUser = null;
-        // TODO: clear all data when new is added
     }
 
     public void logout() {

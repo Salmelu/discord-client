@@ -18,6 +18,9 @@ import java.util.stream.Collectors;
 
 import static java.util.Arrays.*;
 
+/**
+ * Takes care of processing events, updating Discord data structures and passing the events to the listener modules.
+ */
 public class Dispatcher {
 
     private final ClientImpl client;
@@ -50,10 +53,19 @@ public class Dispatcher {
                 method.dispatch(a);
             }
             catch (Exception e) {
-                logger.warn("A module threw an exception", e);
+                logger.warn("A module threw an exception.", e);
             }
         }
     }
+
+    /**
+     * Wrapped so we can call all the modules and know they don't disrupt each other by throwing exceptions.
+     *
+     * Each exception is logged.
+     *
+     * @param <T> type of the first passed object
+     * @param <U> type of the second passed object
+     */
     private interface Wrapper2<T, U> {
         void dispatch(T a, U b);
 
@@ -62,20 +74,20 @@ public class Dispatcher {
                 method.dispatch(a, b);
             }
             catch (Exception e) {
-                logger.warn("A module threw an exception", e);
+                logger.warn("A module threw an exception.", e);
             }
         }
     }
 
-    public void ignoreOwnMessages(boolean ignore) {
+    void ignoreOwnMessages(boolean ignore) {
         this.ignoreOwnMessages = ignore;
     }
 
-    public void ignoreBotMessages(boolean ignore) {
+    void ignoreBotMessages(boolean ignore) {
         this.ignoreBotMessages = ignore;
     }
 
-    public synchronized void fireNotification(NotifyManager.Callback callback, Object o) {
+    synchronized void fireNotification(NotifyManager.Callback callback, Object o) {
         try {
             callback.call(o);
         }
@@ -89,13 +101,12 @@ public class Dispatcher {
         moduleManager.getInitializers().forEach(listener -> Wrapper.wrap(listener::onReady, client));
     }
 
-    public void onChannelCreate(PrivateChannelObject channelObject) {
-        // TODO: fix me
-        List<User> users = new ArrayList<>();
-        UserObject[] userObjects = channelObject.getRecipients();
+    public synchronized void onChannelCreate(PrivateChannelObject channelObject) {
+        final List<User> users = new ArrayList<>();
+        final UserObject[] userObjects = channelObject.getRecipients();
         if(userObjects != null) {
             for(UserObject userObject : userObjects) {
-                User user = client.getUser(userObject.getId());
+                final User user = client.getUser(userObject.getId());
                 if (user == null) {
                     UserImpl newUser = new UserImpl(client, userObject);
                     client.addUser(newUser);
@@ -112,7 +123,7 @@ public class Dispatcher {
                 listener -> Wrapper.wrap(listener::onChannelOpen, channel));
     }
 
-    public void onChannelCreate(ChannelObject channelObject) {
+    public synchronized void onChannelCreate(ChannelObject channelObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(channelObject.getGuildId());
         if(server == null || server.isDisabled()) {
             logger.debug("Created channel for non-tracked server.");
@@ -131,7 +142,7 @@ public class Dispatcher {
                 listener -> Wrapper.wrap(listener::onChannelCreate, channel));
     }
 
-    public void onChannelUpdate(ChannelObject channelObject) {
+    public synchronized void onChannelUpdate(ChannelObject channelObject) {
         final Channel channel = client.getChannelById(channelObject.getId());
         if(channel == null || channel.isPrivate()) {
             logger.warn("Update for channel that is tracked as private, skipping.");
@@ -142,14 +153,14 @@ public class Dispatcher {
                 listener -> Wrapper.wrap(listener::onChannelUpdate, channel.toServerChannel()));
     }
 
-    public void onChannelDelete(PrivateChannelObject channelObject) {
+    public synchronized void onChannelDelete(PrivateChannelObject channelObject) {
         final Channel removed = client.getChannelById(channelObject.getId());
         client.removeChannel(removed);
         moduleManager.getUserActionListeners().forEach(
                 listener -> Wrapper.wrap(listener::onChannelClose, removed.toPrivateChannel()));
     }
 
-    public void onChannelDelete(ChannelObject channelObject) {
+    public synchronized void onChannelDelete(ChannelObject channelObject) {
         final Channel removed = client.getChannelById(channelObject.getId());
         if(removed.isPrivate()) {
             client.removeChannel(removed);
@@ -176,7 +187,7 @@ public class Dispatcher {
     }
 
     public synchronized void onServerUpdate(ServerObject serverObject) {
-        // WARNING: deserialize is incomplete, see https://discordapp.com/developers/docs/resources/guild#guild-object
+        // NOTICE: deserialize is incomplete, see https://discordapp.com/developers/docs/resources/guild#guild-object
         final ServerImpl server = (ServerImpl) client.getServerById(serverObject.getId());
         if(server == null) {
             logger.warn("No server found to be updated, skipping.");
@@ -186,7 +197,13 @@ public class Dispatcher {
         moduleManager.getInitializers().forEach(listener -> Wrapper.wrap(listener::onServerUpdate, server));
     }
 
-    public void onServerMemberAdd(ServerMemberAddResponse memberObject) {
+    public synchronized void onChannelPins(String channelId) {
+        final Channel channel = client.getChannelById(channelId);
+        if(channel == null) return;
+        moduleManager.getMessageListeners().forEach(listener -> Wrapper.wrap(listener::onPinsChange, channel));
+    }
+
+    public synchronized void onServerMemberAdd(ServerMemberAddResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated with new member, skipping.");
@@ -200,7 +217,7 @@ public class Dispatcher {
         moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberAdd, member));
     }
 
-    public void onServerMemberRemove(ServerMemberRemoveResponse memberObject) {
+    public synchronized void onServerMemberRemove(ServerMemberRemoveResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated with new member, skipping.");
@@ -215,7 +232,7 @@ public class Dispatcher {
         moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberRemove, user));
     }
 
-    public void onServerMemberUpdate(ServerMemberUpdateResponse memberObject) {
+    public synchronized void onServerMemberUpdate(ServerMemberUpdateResponse memberObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(memberObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated with new member, skipping.");
@@ -229,7 +246,7 @@ public class Dispatcher {
         moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberUpdate, updated));
     }
 
-    public void onServerMemberChunk(ServerMemberChunkResponse chunkObject) {
+    public synchronized void onServerMemberChunk(ServerMemberChunkResponse chunkObject) {
         final ServerImpl server = (ServerImpl) client.getServerById(chunkObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated with new member, skipping.");
@@ -244,8 +261,8 @@ public class Dispatcher {
         moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onMemberChunk, immutable));
     }
 
-    public void onRoleCreate(ServerRoleResponse roleObject) {
-        ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
+    public synchronized void onRoleCreate(ServerRoleResponse roleObject) {
+        final ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated for role, skipping.");
             return;
@@ -254,8 +271,8 @@ public class Dispatcher {
         moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleCreate, newRole));
     }
 
-    public void onRoleUpdate(ServerRoleResponse roleObject) {
-        ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
+    public synchronized void onRoleUpdate(ServerRoleResponse roleObject) {
+        final ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated for role, skipping.");
             return;
@@ -272,8 +289,8 @@ public class Dispatcher {
         }
     }
 
-    public void onRoleDelete(ServerRoleDeleteResponse roleObject) {
-        ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
+    public synchronized void onRoleDelete(ServerRoleDeleteResponse roleObject) {
+        final ServerImpl server = (ServerImpl) client.getServerById(roleObject.getGuildId());
         if(server == null) {
             logger.warn("No server found to be updated for role, skipping.");
             return;
@@ -308,10 +325,9 @@ public class Dispatcher {
     }
 
     public synchronized void onMessageUpdate(MessageObject messageObject) {
-        // FIXME: Embeds
         final String id = messageObject.getId();
         final String channelId = messageObject.getChannelId();
-        ChannelBase channel = (ChannelBase) client.getChannelById(channelId);
+        final ChannelBase channel = (ChannelBase) client.getChannelById(channelId);
         if(channel == null) {
             logger.warn("Unknown channel has received message update event, skipping.");
             return;
@@ -401,13 +417,13 @@ public class Dispatcher {
         foundListener.ifPresent(listener -> Wrapper.wrap(listener::onMessage, message));
     }
 
-    public void onReactionAdd(ReactionUpdateResponse reactionObject) {
+    public synchronized void onReactionAdd(ReactionUpdateResponse reactionObject) {
         final ChannelBase channel = (ChannelBase) client.getChannelById(reactionObject.getChannelId());
         if(channel == null) {
             // Not a tracked channel, message not tracked either
             return;
         }
-        Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
+        final Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
         if(emoji == null) {
             logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;
@@ -418,13 +434,13 @@ public class Dispatcher {
         moduleManager.getMessageListeners().forEach(listener -> Wrapper2.wrap(listener::onReactionAdd, reaction, user));
     }
 
-    public void onReactionRemove(ReactionUpdateResponse reactionObject) {
+    public synchronized void onReactionRemove(ReactionUpdateResponse reactionObject) {
         final ChannelBase channel = (ChannelBase) client.getChannelById(reactionObject.getChannelId());
         if(channel == null) {
             // Not a tracked channel, message not tracked either
             return;
         }
-        Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
+        final Emoji emoji = Emoji.getByUnicode(reactionObject.getEmoji().getName());
         if(emoji == null) {
             logger.debug("Unknown emoji " + reactionObject.getEmoji().getName() + ", skipping.");
             return;

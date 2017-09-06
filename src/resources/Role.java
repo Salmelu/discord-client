@@ -1,6 +1,5 @@
 package cz.salmelu.discord.resources;
 
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.RequestResponse;
 
@@ -73,20 +72,18 @@ public interface Role {
      * @param color new role color
      * @param separate whether the role displays separately
      * @param mentionable whether the role can be mentioned
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage roles permission
      */
     Future<RequestResponse> update(String name, List<Permission> permissions, int color, boolean separate,
-                                   boolean mentionable, AsyncCallback callback)
+                                   boolean mentionable)
             throws PermissionDeniedException;
 
     /**
      * <p>Deletes the role from the server.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException when the application doesn't have manage roles permission
      */
-    Future<RequestResponse> delete(AsyncCallback callback) throws PermissionDeniedException;
+    Future<RequestResponse> delete() throws PermissionDeniedException;
 }

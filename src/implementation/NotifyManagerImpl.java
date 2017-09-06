@@ -3,8 +3,6 @@ package cz.salmelu.discord.implementation;
 import cz.salmelu.discord.NotifyManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.Marker;
-import org.slf4j.MarkerFactory;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -18,6 +16,7 @@ import java.util.concurrent.locks.ReentrantLock;
 public class NotifyManagerImpl implements NotifyManager {
 
     private static int handleUID = 1;
+    private final static long MAX_SLEEP_TIME = 60 * 60 * 1000;
 
     private class Notification {
         long timestamp;
@@ -65,12 +64,12 @@ public class NotifyManagerImpl implements NotifyManager {
     private final Map<NotificationHandle, Notification> notificationMap = new HashMap<>();
     private Dispatcher dispatcher;
 
-    public NotifyManagerImpl() {
+    NotifyManagerImpl() {
         queueLock = new ReentrantLock();
         queueCondition = queueLock.newCondition();
     }
 
-    public void setDispatcher(Dispatcher dispatcher) {
+    void setDispatcher(Dispatcher dispatcher) {
         this.dispatcher = dispatcher;
     }
 
@@ -139,7 +138,7 @@ public class NotifyManagerImpl implements NotifyManager {
     }
 
     private void run() {
-        int sleepTime;
+        long sleepTime;
         while(running) {
             final long currentTime = System.currentTimeMillis();
             final List<Notification> processNotification = new ArrayList<>();
@@ -164,9 +163,9 @@ public class NotifyManagerImpl implements NotifyManager {
             // Schedule next
             queueLock.lock();
             Notification nextSchedule = notificationQueue.peek();
-            sleepTime = 60 * 60 * 1000; // 1 hour
-            if(nextSchedule != null && nextSchedule.timestamp - currentTime < 60 * 60 * 1000) {
-                sleepTime = (int) (nextSchedule.timestamp - currentTime);
+            sleepTime = MAX_SLEEP_TIME; // 1 hour
+            if(nextSchedule != null && nextSchedule.timestamp - currentTime < MAX_SLEEP_TIME) {
+                sleepTime = nextSchedule.timestamp - currentTime;
             }
             try {
                 queueCondition.await(sleepTime, TimeUnit.MILLISECONDS);

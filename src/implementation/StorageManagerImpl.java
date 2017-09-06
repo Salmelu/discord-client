@@ -53,7 +53,7 @@ public class StorageManagerImpl {
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
 
-    public StorageManagerImpl() {
+    StorageManagerImpl() {
         savingThread = new Thread(() -> {
             while(savingRunning) {
                 saveAll();
@@ -69,12 +69,12 @@ public class StorageManagerImpl {
         savingThread.start();
     }
 
-    public synchronized <T> Storage getStorage(T object, String name) {
+    synchronized <T> Storage getStorage(T object, String name) {
         Class<?> clazz = object.getClass();
         return getStorageClassed(clazz, name);
     }
 
-    public synchronized Storage getStorageClassed(Class<?> clazz, String name) {
+    synchronized Storage getStorageClassed(Class<?> clazz, String name) {
         NamePair pair = new NamePair(clazz, name);
         if(!storageMap.containsKey(pair)) {
             if(!load(pair)) {
@@ -84,7 +84,7 @@ public class StorageManagerImpl {
         return storageMap.get(pair);
     }
     
-    public synchronized void save(NamePair pair) {
+    private void save(NamePair pair) {
         final StorageImpl storage = storageMap.get(pair);
         if(storage == null) return;
 
@@ -101,7 +101,7 @@ public class StorageManagerImpl {
         }
     }
 
-    public synchronized void saveAll() {
+    synchronized void saveAll() {
         logger.info( "Saving all storages...");
         for (Map.Entry<NamePair, StorageImpl> classEntry : storageMap.entrySet()) {
             save(classEntry.getKey());

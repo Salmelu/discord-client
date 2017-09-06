@@ -1,5 +1,6 @@
 package cz.salmelu.discord.implementation.net.socket;
 
+import cz.salmelu.discord.DiscordClient;
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.*;
@@ -27,11 +28,21 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.InflaterInputStream;
 
+/**
+ * <p>A websocket to communicate with Discord Gateway.</p>
+ * <p>Takes care of establishing connection, processing events and following Discord event flow.</p>
+ */
 public class DiscordWebSocket extends WebSocketAdapter {
 
-    private static final String LIB_NAME = "salmelu-discord";
-    private static final String LIB_VERSION = "0.0.1";
-    private String token;
+    /** Library name presented to the gateway */
+    private static final String LIB_NAME = DiscordClient.LIB_NAME;
+    /** Library version presented to the gateway */
+    private static final String LIB_VERSION = DiscordClient.LIB_VERSION;
+    /** The amount of milliseconds after which fail counter resets */
+    private static final long FAIL_RESET_PERIOD = 5 * 60 * 1000;
+    /** The amount of failed tries in a short period of time that cause the gateway to shutdown */
+    private static final long FAIL_LIMIT = 10;
+    private final String token;
 
     private ClientImpl discord;
     private WebSocketClient client;
@@ -63,6 +74,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
         this.state = DiscordWebSocketState.INITIALIZED;
     }
 
+    /**
+     * Initializes the websocket clint and tries to connect the client to Discord Websocket.
+     * @param uri uri of the websocket
+     */
     public void connect(URI uri) {
         if(this.state != DiscordWebSocketState.INITIALIZED) {
             logger.error("Cannot connect to websocket without initializing properly.");
@@ -83,6 +98,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
         connect();
     }
 
+    /**
+     * Connects (or reconnects) the client back to websocket.
+     */
     private synchronized void connect() {
         if(state == DiscordWebSocketState.READY ||
                 state == DiscordWebSocketState.CONNECTING ||
@@ -112,6 +130,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
         }
     }
 
+    /**
+     * <p>Disconnects the client from Discord Gateway.</p>
+     * <p>This prevents automatic reconnection.</p>
+     */
     public void disconnect() {
         if(state != DiscordWebSocketState.READY) {
             logger.warn("Attempting to disconnect not working websocket.");
@@ -138,18 +160,30 @@ public class DiscordWebSocket extends WebSocketAdapter {
         logger.info("Closed connection to socket.");
     }
 
+    /**
+     * Checks current websocket client's state.
+     * @return client's state
+     */
     public DiscordWebSocketState getState() {
         return state;
     }
 
+    /**
+     * <p>Sends a message to the Gateway. The method is synchronized therefore it prevents
+     * race conditions while sending the messages.</p>
+     * @param op message op code
+     * @param object sent object
+     */
     public synchronized void sendMessage(int op, MappedObject object) {
+        // Create the message object
         JSONObject message = new JSONObject();
         message.put("op", op);
         message.put("d", serializer.serialize(object));
 
+        // Status updates have different rate limits, handle separately
         if(op == DiscordSocketMessage.STATUS_UPDATE) {
             long wait = limiter.checkGameUpdateLimit();
-            while(wait > 0) {
+            while(wait > 0 && getState() == DiscordWebSocketState.READY) {
                 logger.warn("Request to status update is being rate limited, " +
                         "waiting for " + wait + " milliseconds.");
                 try {
@@ -164,40 +198,51 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 || op == DiscordSocketMessage.RESUME
                 || op == DiscordSocketMessage.IDENTIFY) {
             // Skip the checks
-            sendMessage0(message.toString());
+            sendMessage0(message.toString(), true);
         }
         else {
             sendMessage(message.toString());
         }
     }
 
-    public synchronized void sendMessage(String message) {
+    /**
+     * Sends a String message to the Discord gateway.
+     * @param message sent message
+     */
+    synchronized void sendMessage(String message) {
         if(state != DiscordWebSocketState.READY) {
             logger.warn("Cannot send messages when the connection is not ready, skipping.");
             return;
         }
-        sendMessage0(message);
+        sendMessage0(message, false);
     }
 
-    synchronized void sendMessage0(String message) {
+    /**
+     * Internally sends the message, bypassing the ready check. Needed for heartbeat.
+     * @param message sent message
+     * @param skip skip the rate limit check
+     */
+    synchronized void sendMessage0(String message, boolean skip) {
         if(session == null || !session.isOpen()) {
             logger.warn("No opened connection to socket.");
             return;
         }
         logger.debug("Sending message " + message.replace(token, "TOKEN"));
 
-        // Block until the gateway is ready to get new request
-        long wait = limiter.checkGatewayLimit();
-        while(wait > 0) {
-            logger.warn("Request to status update is being rate limited, " +
-                    "waiting for " + wait + " milliseconds.");
-            try {
-                Thread.sleep(wait);
+        // Block until the gateway is ready to get new request, initializing messages bypass this
+        if(!skip) {
+            long wait = limiter.checkGatewayLimit();
+            while (wait > 0) {
+                logger.warn("Request to status update is being rate limited, " +
+                        "waiting for " + wait + " milliseconds.");
+                try {
+                    Thread.sleep(wait);
+                }
+                catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                wait = limiter.checkGatewayLimit();
             }
-            catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            wait = limiter.checkGatewayLimit();
         }
 
         // Send the message
@@ -224,9 +269,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
     public void onWebSocketClose(int code, String reason) {
         this.state = DiscordWebSocketState.DISCONNECTED;
 
-        // A mechanism to just kill the client, if it's failing too often.
-        // Spamming websocket too much means risking a ban.
-        if(System.currentTimeMillis() - lastFailedTry > 60 * 1000) {
+        // A mechanism to kill the client, if it's failing too often.
+        // Spamming websocket too much is risking a ban.
+        if(System.currentTimeMillis() - lastFailedTry > FAIL_RESET_PERIOD) {
             // more than a minute ago, reset
             failedTries = 1;
         }
@@ -234,11 +279,11 @@ public class DiscordWebSocket extends WebSocketAdapter {
             ++failedTries;
         }
         lastFailedTry = System.currentTimeMillis();
-        if(failedTries >= 10) {
+        if(failedTries >= FAIL_LIMIT) {
             // Too many fails, sorry, but we can't spam websocket that much, good bye
             this.state = DiscordWebSocketState.DEAD;
             logger.error("Connection was closed, code = " + code + ", message = " + reason);
-            logger.error("This was tenth failure in a row, aborting websocket attempts. Goodbye.");
+            logger.error("This was last allowed failure in a row, aborting websocket attempts. Goodbye.");
             throw new Error("Websocket kept failing to connect, aborting.");
         }
 
@@ -260,6 +305,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
             JSONObject message = new JSONObject(s);
             int op = message.getInt("op");
 
+            // Process the message depending on OP code
             switch (op) {
                 case DiscordSocketMessage.DISPATCH:
                     sequenceNumber = message.getInt("s");
@@ -328,6 +374,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
         onWebSocketText(reader.lines().collect(Collectors.joining()));
     }
 
+    /**
+     * Resumes the websocket connection. This requires a valid session id and sequence number and causes
+     * the gateway to resend messages the client missed.
+     */
     private void resume() {
         if(state != DiscordWebSocketState.RECONNECTING && state != DiscordWebSocketState.CONNECTING) return;
         state = DiscordWebSocketState.RESUMING;
@@ -340,6 +390,13 @@ public class DiscordWebSocket extends WebSocketAdapter {
         sendMessage(DiscordSocketMessage.RESUME, request);
     }
 
+    /**
+     * Requests offline members in a given server. This is needed for large servers as those do not
+     * present a complete list of users on connection.
+     * @param serverId id of requested server
+     * @param username an optional pattern for usernames, leave empty string if not needed
+     * @param limit maximum amount of users requested, leave 0 if all are needed
+     */
     public void requestOfflineMembers(String serverId, String username, int limit) {
         if(state != DiscordWebSocketState.READY) return;
         JSONObject data = new JSONObject();
@@ -354,6 +411,11 @@ public class DiscordWebSocket extends WebSocketAdapter {
         sendMessage(message.toString());
     }
 
+    /**
+     * Updates user's presence status.
+     * @param gameName name of currently played game
+     * @param idle how long is the user idle
+     */
     public void statusUpdate(String gameName, Long idle) {
         if(state != DiscordWebSocketState.READY) return;
         final GameObject game = new GameObject();
@@ -365,6 +427,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
         sendMessage(DiscordSocketMessage.STATUS_UPDATE, request);
     }
 
+    /**
+     * Sends the identify request to the gateway.
+     */
     private void identify() {
         if(state != DiscordWebSocketState.CONNECTING) return;
         final IdentifyRequestProperties properties = new IdentifyRequestProperties();
@@ -380,7 +445,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
         sendMessage(DiscordSocketMessage.IDENTIFY, request);
     }
 
-    public void timeout() {
+    /**
+     * The gateway heartbeat timed out. Close the session and attempt to reconnect.
+     */
+    void timeout() {
         if(state != DiscordWebSocketState.READY) return;
         logger.warn("Detected heartbeat timeout.");
         heartbeatGenerator.pause();
@@ -388,7 +456,12 @@ public class DiscordWebSocket extends WebSocketAdapter {
         session = null;
     }
 
-    private synchronized void dispatch(JSONObject data, String type) {
+    /**
+     * Dispatches an event for the listeners.
+     * @param data received gateway data
+     * @param type event type
+     */
+    private void dispatch(JSONObject data, String type) {
         int channelType;
         try {
             if (state == DiscordWebSocketState.DISCONNECTING) return;
@@ -460,7 +533,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     dispatcher.onRoleDelete(serializer.deserialize(data, ServerRoleDeleteResponse.class));
                     break;
                 case "CHANNEL_PINS_UPDATE":
-                    // TODO
+                    dispatcher.onChannelPins(data.getString("channel_id"));
                     break;
                 case "MESSAGE_CREATE":
                     dispatcher.onMessage(serializer.deserialize(data, MessageObject.class));
@@ -510,9 +583,10 @@ public class DiscordWebSocket extends WebSocketAdapter {
 
     // This one is a bit special, handle with caution
     private void dispatchReady(JSONObject data) {
-        //int version = data.getInt("v");
+        // int version = data.getInt("v");
         sessionId = data.getString("session_id");
-        //final UserObject user = UserObject.deserialize(data.getJSONObject("user"), UserObject.class);
+        // We already have user object from @me at initialization phase
+        // final UserObject user = UserObject.deserialize(data.getJSONObject("user"), UserObject.class);
 
         final List<PrivateChannelObject> privateList = new ArrayList<>();
         for (Object channel : data.getJSONArray("private_channels")) {

@@ -18,7 +18,7 @@ public class SubscriptionManagerImpl implements SubscriptionManager {
     private final ArrayList<String> channels;
     private final Map<String, ArrayList<String>> subs;
 
-    public SubscriptionManagerImpl(SubscriptionMaster master, Storage storage) {
+    SubscriptionManagerImpl(SubscriptionMaster master, Storage storage) {
         this.subscriptionMaster = master;
         this.storage = storage;
 

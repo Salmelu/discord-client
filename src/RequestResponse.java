@@ -29,8 +29,8 @@ public interface RequestResponse {
      * <p>Checks, if the request failed because of rate limitation.</p>
      * <p>If this happens, you probably used too many similar requests (like add reaction) one after another.
      * If this happens because of spamming requests, try waiting after each one with {@link Future#get()}.
-     * If it happens randomly, it can be because of different modules doing same actions. Simply try again.</p>
-     * <p><b>Warning:</b> if you go over rates too much, you risk getting banned.</p>
+     * If this happens randomly, it can be caused by different modules doing same actions. Try again.</p>
+     * <p><b>Warning:</b> if you exceed the limits too often, you risk getting banned.</p>
      * @return true if the request failed due to rate limit
      */
     boolean isRateLimited();

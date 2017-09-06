@@ -136,9 +136,9 @@ public abstract class ChannelBase implements Channel {
     }
 
     @Override
-    public Future<RequestResponse> triggerTyping(AsyncCallback callback) {
+    public Future<RequestResponse> triggerTyping() {
         return client.getRequester().postRequestAsync(EndpointBuilder.create(Endpoint.CHANNEL)
-                .addElement(getId()).addElement("typing").build(), callback);
+                .addElement(getId()).addElement("typing").build());
     }
 
     @Override
@@ -158,22 +158,22 @@ public abstract class ChannelBase implements Channel {
     }
 
     @Override
-    public Future<RequestResponse> pinMessage(Message message, AsyncCallback callback) {
+    public Future<RequestResponse> pinMessage(Message message) {
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("pins").addElement(message.getId()).build();
-        return client.getRequester().putRequestAsync(endpoint, callback);
+        return client.getRequester().putRequestAsync(endpoint);
     }
 
     @Override
-    public Future<RequestResponse> unpinMessage(Message message, AsyncCallback callback) {
+    public Future<RequestResponse> unpinMessage(Message message) {
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL)
                 .addElement(getId()).addElement("pins").addElement(message.getId()).build();
-        return client.getRequester().deleteRequestAsync(endpoint, callback);
+        return client.getRequester().deleteRequestAsync(endpoint);
     }
 
     @Override
-    public Future<RequestResponse> deleteChannel(AsyncCallback callback) throws PermissionDeniedException {
+    public Future<RequestResponse> deleteChannel() throws PermissionDeniedException {
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.CHANNEL).addElement(getId()).build();
-        return client.getRequester().deleteRequestAsync(endpoint, callback);
+        return client.getRequester().deleteRequestAsync(endpoint);
     }
 }

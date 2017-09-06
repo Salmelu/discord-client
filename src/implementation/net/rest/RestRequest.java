@@ -16,23 +16,34 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+/**
+ * A single request to the Discord servers.
+ */
 public class RestRequest {
 
     private HashMap<String, List<String>> headers = new HashMap<>();
     private HttpMethod method;
-    private HttpRequestBase baseRequest;
     private String url = null;
     private String body;
 
-    public RestRequest(HttpMethod method) {
+    /**
+     * Creates a new request using given HTTP method.
+     * @param method used HTTP method
+     */
+    RestRequest(HttpMethod method) {
         this.method = method;
     }
 
-    public RestRequest setEndpoint(Endpoint endpoint) {
+    /**
+     * Sets the endpoint of the request.
+     * @param endpoint set endpoint
+     * @return this
+     */
+    RestRequest setEndpoint(Endpoint endpoint) {
         try {
             // Do the magic to convert all stuff to UTF-8
-            URL urlObj = new URL(endpoint.getAddress());
-            URI uri = new URI(urlObj.getProtocol(), urlObj.getUserInfo(), urlObj.getHost(), urlObj.getPort(),
+            final URL urlObj = new URL(endpoint.getAddress());
+            final URI uri = new URI(urlObj.getProtocol(), urlObj.getUserInfo(), urlObj.getHost(), urlObj.getPort(),
                     URLDecoder.decode(urlObj.getPath(), "UTF-8"), "", urlObj.getRef());
             url = uri.toURL().toString();
             if (urlObj.getQuery() != null && !urlObj.getQuery().trim().equals("")) {
@@ -52,33 +63,64 @@ public class RestRequest {
         return this;
     }
 
-    public RestRequest setBody(String body) {
+    /**
+     * Sets the body of the request.
+     * @param body request body
+     * @return this
+     */
+    RestRequest setBody(String body) {
         this.body = body;
         return this;
     }
 
-    public RestRequest setBody(JSONObject object) {
+    /**
+     * Sets the body of the request.
+     * @param object request body
+     * @return this
+     */
+    RestRequest setBody(JSONObject object) {
         this.body = object.toString();
         return this;
     }
 
-    public RestRequest setBody(JSONArray object) {
+    /**
+     * Sets the body of the request.
+     * @param object request body
+     * @return this
+     */
+    RestRequest setBody(JSONArray object) {
         this.body = object.toString();
         return this;
     }
 
-    public RestRequest addHeader(String name, String value) {
-        List<String> headerList = headers.computeIfAbsent(name, k -> new ArrayList<>());
+    /**
+     * Adds a HTTP header to the request.
+     * @param name header name
+     * @param value header value
+     * @return this
+     */
+    RestRequest addHeader(String name, String value) {
+        final List<String> headerList = headers.computeIfAbsent(name, k -> new ArrayList<>());
         headerList.add(value);
         return this;
     }
 
-    public RestRequest addHeaders(String name, List<String> values) {
-        List<String> headerList = headers.computeIfAbsent(name, k -> new ArrayList<>());
+    /**
+     * Adds multiple HTTP headers with the same name to the request.
+     * @param name header name
+     * @param values list of header values
+     * @return this
+     */
+    RestRequest addHeaders(String name, List<String> values) {
+        final List<String> headerList = headers.computeIfAbsent(name, k -> new ArrayList<>());
         headerList.addAll(values);
         return this;
     }
 
+    /**
+     * Creates base of the request for correct method.
+     * @return bare request
+     */
     private HttpRequestBase createRequest() {
         //Create the request
         HttpRequestBase request = null;
@@ -102,6 +144,10 @@ public class RestRequest {
         return request;
     }
 
+    /**
+     * Fills in required headers.
+     * @param request filled request
+     */
     private void fillHeaders(HttpRequestBase request) {
         // Add the headers
         headers.entrySet().forEach(e -> {
@@ -111,8 +157,12 @@ public class RestRequest {
         });
     }
 
-    public HttpRequestBase getFinalRequest() {
-        HttpRequestBase request = createRequest();
+    /**
+     * Create a finalized request ready to be sent.
+     * @return ready request
+     */
+    HttpRequestBase getFinalRequest() {
+        final HttpRequestBase request = createRequest();
         fillHeaders(request);
 
         // Set the body
@@ -123,8 +173,12 @@ public class RestRequest {
         return request;
     }
 
-    public HttpRequestBase getFinalRequestAsync() {
-        HttpRequestBase request = createRequest();
+    /**
+     * Create a finalized asynchronous request ready to be sent.
+     * @return ready asynchronous request
+     */
+    HttpRequestBase getFinalRequestAsync() {
+        final HttpRequestBase request = createRequest();
         fillHeaders(request);
 
         if(method != HttpMethod.GET && body != null) {

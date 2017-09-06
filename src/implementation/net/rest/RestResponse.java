@@ -2,7 +2,6 @@ package cz.salmelu.discord.implementation.net.rest;
 
 import com.mashape.unirest.http.utils.ResponseUtils;
 import cz.salmelu.discord.DiscordRequestException;
-import cz.salmelu.discord.RequestResponse;
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -16,26 +15,36 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.zip.GZIPInputStream;
 
-public class RestResponse {
+/**
+ * A response given by the Discord server to previously sent request.
+ */
+class RestResponse {
 
     private String responseBody;
     private final int statusCode;
     private final String statusText;
     private final HashMap<String, List<String>> headers = new HashMap<>();
 
-    public RestResponse(HttpResponse response) {
+    /**
+     * Converts HTTP response into Rest response and extracts relevant data and request body.
+     * @param response received response
+     */
+    RestResponse(HttpResponse response) {
         final HttpEntity entity = response.getEntity();
 
+        // Save the headers
         for (Header header : response.getAllHeaders()) {
             final String name = header.getName();
             final List<String> headerList = headers.computeIfAbsent(name, k -> new ArrayList<>());
             headerList.add(header.getValue());
         }
 
+        // Save status
         final StatusLine statusLine = response.getStatusLine();
         this.statusCode = statusLine.getStatusCode();
         this.statusText = statusLine.getReasonPhrase();
 
+        // Process body if there was any
         if(entity != null) {
             String charset = "UTF-8";
 
@@ -65,33 +74,65 @@ public class RestResponse {
         }
     }
 
-    public String getResponseBody() {
+    /**
+     * Gets parsed HTTP response body.
+     * @return HTTP body
+     */
+    String getResponseBody() {
         return responseBody;
     }
 
-    public int getStatusCode() {
+    /**
+     * Gets received HTTP status code.
+     * @return HTTP status code
+     */
+    int getStatusCode() {
         return statusCode;
     }
 
-    public String getStatusText() {
+    /**
+     * Gets received HTTP status text.
+     * @return HTTP status text
+     */
+    String getStatusText() {
         return statusText;
     }
 
-    public String getFirstHeader(String name) {
+    /**
+     * Gets the first header with the given name.
+     * @param name header name
+     * @return value if it exists, or null
+     */
+    String getFirstHeader(String name) {
         List<String> list = headers.get(name);
         return (list == null || list.size() < 1) ? null : list.get(0);
     }
 
-    public boolean hasHeader(String name) {
+    /**
+     * Checks if the response contained a specific header.
+     * @param name checked header name
+     * @return true if it was present in the response
+     */
+    boolean hasHeader(String name) {
         List<String> list = headers.get(name);
         return (list != null && list.size() >= 1);
     }
 
-    public List<String> getHeaders(String name) {
-        return Collections.unmodifiableList(headers.get(name));
+    /**
+     * Get all headers with the given name.
+     * @param name header name
+     * @return list of values or null, if the header is not present at all
+     */
+    List<String> getHeaders(String name) {
+        return hasHeader(name) ? Collections.unmodifiableList(headers.get(name)) : null;
     }
 
-    public RequestResponseImpl toRequestResponse() {
-        return new RequestResponseImpl(statusCode, statusText, headers);
+    /**
+     * Converts the response into {@link cz.salmelu.discord.RequestResponse},
+     * which is presented to modules in the {@link java.util.concurrent.Future}.
+     * @return matching {@link cz.salmelu.discord.RequestResponse}
+     */
+    RequestResponseImpl toRequestResponse() {
+        return new RequestResponseImpl(statusCode, statusText);
     }
 }

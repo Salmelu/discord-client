@@ -1,6 +1,5 @@
 package cz.salmelu.discord.resources;
 
-import cz.salmelu.discord.AsyncCallback;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.RequestResponse;
 
@@ -33,7 +32,7 @@ public interface Server {
      * one of the administrators to invite the application back.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      */
-    Future<RequestResponse> leave(AsyncCallback callback);
+    Future<RequestResponse> leave();
 
     /**
      * Gets the list of channels present on this server.
@@ -92,7 +91,8 @@ public interface Server {
     /**
      * <p>Requests the server to load all members. By default, the server can only send the online members when
      * it's first loaded.</p>
-     * <p>This method sends a request to Discord server and therefore the call blocks until it's completed.</p>
+     * <p>This method sends a request to Discord Gateway and doesn't await response. The member list may be received
+     * using {@link cz.salmelu.discord.listeners.ServerListener#onMemberChunk(List)} method.</p>
      */
     void loadAllMembers();
 
@@ -130,11 +130,10 @@ public interface Server {
     /**
      * <p>Kicks the member from the server. The user will be able to rejoin again if they receive an invite.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have kick members permission
      */
-    Future<RequestResponse> kickMember(Member member, AsyncCallback callback) throws PermissionDeniedException;
+    Future<RequestResponse> kickMember(Member member) throws PermissionDeniedException;
 
     /**
      * <p>Gets list of all banned users from this server.</p>
@@ -152,12 +151,11 @@ public interface Server {
      * @param member banned member
      * @param messageDays how old messages will be deleted (valid values are 0-7, where 0 means no messages
      *                    will be deleted)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have ban members permission
      * @throws IllegalArgumentException if the parameter has invalid value
      */
-    Future<RequestResponse> banMember(Member member, int messageDays, AsyncCallback callback)
+    Future<RequestResponse> banMember(Member member, int messageDays)
             throws PermissionDeniedException, IllegalArgumentException;
 
     /**
@@ -168,45 +166,41 @@ public interface Server {
      * @param user banned user
      * @param messageDays how old messages will be deleted (valid values are 0-7, where 0 means no messages
      *                    will be deleted)
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have ban members permission
      * @throws IllegalArgumentException if the parameter has invalid value
      */
-    Future<RequestResponse> banUser(User user, int messageDays, AsyncCallback callback)
+    Future<RequestResponse> banUser(User user, int messageDays)
             throws PermissionDeniedException, IllegalArgumentException;
 
     /**
      * <p>Unbans a banned user. The user can then use an invite to rejoin the server.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param user banned user
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have ban members permission
      */
-    Future<RequestResponse> unbanUser(User user, AsyncCallback callback) throws PermissionDeniedException;
+    Future<RequestResponse> unbanUser(User user) throws PermissionDeniedException;
 
     /**
      * <p>Changes the application's user's nickname.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param nickname new nickname
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws IllegalArgumentException if the nickname is not valid by Discord standards,
      * see {@link cz.salmelu.discord.NameHelper#validateName(String)}
      */
-    Future<RequestResponse> changeMyNickname(String nickname, AsyncCallback callback);
+    Future<RequestResponse> changeMyNickname(String nickname);
 
     /**
      * <p>Creates a new text channel.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param name channel name
      * @param overwrites permission overwrites for the channel
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage channels permission
      */
-    Future<RequestResponse> createTextChannel(String name, List<PermissionOverwrite> overwrites, AsyncCallback callback)
+    Future<RequestResponse> createTextChannel(String name, List<PermissionOverwrite> overwrites)
             throws PermissionDeniedException;
 
     /**
@@ -216,24 +210,22 @@ public interface Server {
      * @param overwrites permission overwrites for the channel
      * @param bitrate bitrate of the channel
      * @param userLimit maximum amount of users that can be in the channel simultaneously
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage channels permission
      */
     Future<RequestResponse> createVoiceChannel(String name, int bitrate, int userLimit,
-                                               List<PermissionOverwrite> overwrites, AsyncCallback callback)
+                                               List<PermissionOverwrite> overwrites)
             throws PermissionDeniedException;
 
     /**
      * <p>Deletes an existing channel.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param channel deleted channel
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage channels permission
      * @throws IllegalArgumentException if the channel is not a part of this server
      */
-    Future<RequestResponse> deleteChannel(ServerChannel channel, AsyncCallback callback)
+    Future<RequestResponse> deleteChannel(ServerChannel channel)
             throws PermissionDeniedException, IllegalArgumentException;
 
     /**
@@ -244,12 +236,11 @@ public interface Server {
      * @param color role's color
      * @param separate set to true if the role should be displayed separately
      * @param mentionable set to true if the members should be able to mention this role
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission
      */
     Future<RequestResponse> createRole(String name, List<Permission> permissions, int color, boolean separate,
-                                       boolean mentionable, AsyncCallback callback);
+                                       boolean mentionable);
 
     /**
      * <p>Updates an existing role.</p>
@@ -260,22 +251,20 @@ public interface Server {
      * @param color role's color
      * @param separate set to true if the role should be displayed separately
      * @param mentionable set to true if the members should be able to mention this role
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission
      */
     Future<RequestResponse> updateRole(Role role, String name, List<Permission> permissions, int color, boolean separate,
-                                       boolean mentionable, AsyncCallback callback);
+                                       boolean mentionable);
 
     /**
      * <p>Deletes a role from the server.</p>
      * <p>This method sends an asynchronous request to Discord server.</p>
      * @param role deleted role
-     * @param callback callback to call when the request is completed, can be null if not needed
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission
      */
-    Future<RequestResponse> deleteRole(Role role, AsyncCallback callback)
+    Future<RequestResponse> deleteRole(Role role)
             throws PermissionDeniedException;
 
     /**
