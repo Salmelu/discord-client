@@ -19,7 +19,7 @@ import java.util.List;
 /**
  * A single request to the Discord servers.
  */
-public class RestRequest {
+class RestRequest {
 
     private HashMap<String, List<String>> headers = new HashMap<>();
     private HttpMethod method;

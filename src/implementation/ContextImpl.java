@@ -14,8 +14,8 @@ public class ContextImpl implements Context {
     private PermissionGuard permissionGuard = null;
     private SubscriptionManager subscriptionManager = null;
 
-    ContextImpl() {
-        storageManager = new StorageManagerImpl();
+    ContextImpl(String storagePath) {
+        storageManager = new StorageManagerImpl(storagePath);
         notifyManager = new NotifyManagerImpl();
         subscriptionMaster = new SubscriptionMaster(storageManager);
         owner = null;

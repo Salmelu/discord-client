@@ -1,6 +1,5 @@
 package cz.salmelu.discord.implementation.net.rest;
 
-import com.mashape.unirest.http.async.utils.AsyncIdleConnectionMonitorThread;
 import cz.salmelu.discord.DiscordRequestException;
 import cz.salmelu.discord.RequestResponse;
 import org.apache.http.HttpResponse;
@@ -30,7 +29,7 @@ class RestRequestSender {
     private final CloseableHttpClient restClient;
     private final CloseableHttpAsyncClient asyncRestClient;
     private final Thread monitor;
-    private final AsyncIdleConnectionMonitorThread asyncMonitor;
+    private final Thread asyncMonitor;
 
     RestRequestSender() {
         final RequestConfig config = RequestConfig.custom()
@@ -82,9 +81,28 @@ class RestRequestSender {
             throw new RuntimeException(e);
         }
 
+        asyncMonitor = new Thread() {
+            @Override
+            public void run() {
+                try {
+                    while (!Thread.currentThread().isInterrupted()) {
+                        synchronized (this) {
+                            wait(10000);
+                            // Close expired connections
+                            asyncConnectionManager.closeExpiredConnections();
+                            // Optionally, close connections
+                            // that have been idle longer than 30 sec
+                            asyncConnectionManager.closeIdleConnections(60, TimeUnit.SECONDS);
+                        }
+                    }
+                } catch (InterruptedException ex) {
+                    // terminate
+                }
+            }
+        };
+
 		asyncRestClient = HttpAsyncClientBuilder.create().setDefaultRequestConfig(config)
                 .setConnectionManager(asyncConnectionManager).build();
-        asyncMonitor = new AsyncIdleConnectionMonitorThread(asyncConnectionManager);
     }
 
     private void startAsyncClient() {

@@ -153,9 +153,9 @@ public class DiscordWebSocket extends WebSocketAdapter {
             }
             heartbeatThread = null;
         }
+        stopping = true;
         if(session != null) {
             session.close(1000, "Gracefully ending.");
-            stopping = true;
         }
         logger.info("Closed connection to socket.");
     }
@@ -294,7 +294,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
         }
         else {
             logger.warn("Connection was closed, code = " + code + ", message = " + reason);
-            connect();
+            if(!stopping) connect();
         }
     }
 

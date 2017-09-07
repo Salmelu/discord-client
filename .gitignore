@@ -21,20 +21,14 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 
-# save files for StorageManager
-storage/*
-
-# tokens and stuff
-src/implementation/Secret.java
-
 # personal 
 TODO
 docs/
 unirest/
 
 # builded files
-build/
+dist/
+target/
 
 # Idea project files
-DiscordClient.iml
 .idea/

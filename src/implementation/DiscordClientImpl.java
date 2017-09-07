@@ -48,11 +48,12 @@ public class DiscordClientImpl {
                 throw new IOException("Token is not set in properties file.");
             }
 
-            final boolean ignoreBot = Boolean.parseBoolean(properties.getProperty("ignoreBot"));
-            final boolean ignoreSelf = Boolean.parseBoolean(properties.getProperty("ignoreSelf"));
-            final String helpCommand = properties.getProperty("helpCommand");
+            final boolean ignoreBot = Boolean.parseBoolean(properties.getProperty("ignoreBot", "true"));
+            final boolean ignoreSelf = Boolean.parseBoolean(properties.getProperty("ignoreSelf", "true"));
+            final String helpCommand = properties.getProperty("helpCommand", "");
+            final String storagePath = properties.getProperty("storagePath", "./storage");
 
-            context = new ContextImpl();
+            context = new ContextImpl(storagePath);
             client = new ClientImpl(token);
             manager = new ModuleManager(context);
             dispatcher = new Dispatcher(client, manager, helpCommand);
