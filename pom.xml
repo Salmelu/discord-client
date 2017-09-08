@@ -73,6 +73,9 @@
                 <version>2.3.1</version>
                 <configuration>
                     <outputDirectory>${basedir}/dist</outputDirectory>
+                    <excludes>
+                        <exclude>cz/salmelu/discord/modules/**</exclude>
+                    </excludes>
                     <archive>
                         <index>false</index>
                         <manifest>
@@ -81,7 +84,7 @@
                             <mainClass>cz.salmelu.discord.DiscordClient</mainClass>
                         </manifest>
                         <manifestEntries>
-                            <Class-Path>config/</Class-Path>
+                            <Class-Path>config/ modules/</Class-Path>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -106,7 +109,7 @@
                 <version>2.4.3</version>
                 <executions>
                     <execution>
-                        <id>copy-resources</id>
+                        <id>copy-config</id>
                         <phase>package</phase>
                         <goals>
                             <goal>copy-resources</goal>
@@ -117,6 +120,21 @@
                                 <resource>
                                     <directory>${basedir}/config</directory>
                                     <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-modules</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/dist/modules/cz/salmelu/discord/modules</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.outputDirectory}/cz/salmelu/discord/modules</directory>
                                 </resource>
                             </resources>
                         </configuration>

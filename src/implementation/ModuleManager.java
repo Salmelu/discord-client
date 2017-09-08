@@ -5,7 +5,6 @@ import cz.salmelu.discord.listeners.Initializer;
 import cz.salmelu.discord.listeners.MessageListener;
 import cz.salmelu.discord.listeners.ServerListener;
 import cz.salmelu.discord.listeners.UserActionListener;
-import cz.salmelu.discord.modules.Gainzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,7 +87,7 @@ class ModuleManager {
         boolean failing = false;
         for (String className : moduleList) {
             try {
-                Class<?> loaded = Class.forName(className);
+                final Class<?> loaded = ClassLoader.getSystemClassLoader().loadClass(className);
                 addModule(loaded);
             }
             catch (ClassNotFoundException e) {
