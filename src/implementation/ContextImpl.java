@@ -9,6 +9,7 @@ public class ContextImpl implements Context {
     private final StorageManagerImpl storageManager;
     private final NotifyManagerImpl notifyManager;
     private final SubscriptionMaster subscriptionMaster;
+    private ModuleManager moduleManager;
 
     private final Class<?> owner;
     private PermissionGuard permissionGuard = null;
@@ -30,11 +31,16 @@ public class ContextImpl implements Context {
         storageManager = master.storageManager;
         notifyManager = master.notifyManager;
         subscriptionMaster = master.subscriptionMaster;
+        moduleManager = master.moduleManager;
         this.owner = owner;
     }
 
     void setDispatcher(Dispatcher dispatcher) {
         notifyManager.setDispatcher(dispatcher);
+    }
+
+    void setModuleManager(ModuleManager manager) {
+        this.moduleManager = manager;
     }
 
     void startNotifyManager() {
@@ -83,5 +89,10 @@ public class ContextImpl implements Context {
             permissionGuard = new PermissionGuardImpl(storage);
         }
         return permissionGuard;
+    }
+
+    @Override
+    public <T> T getModuleInstance(Class<T> moduleClass) {
+        return moduleManager.getModule(moduleClass);
     }
 }

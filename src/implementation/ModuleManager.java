@@ -5,6 +5,7 @@ import cz.salmelu.discord.listeners.Initializer;
 import cz.salmelu.discord.listeners.MessageListener;
 import cz.salmelu.discord.listeners.ServerListener;
 import cz.salmelu.discord.listeners.UserActionListener;
+import cz.salmelu.discord.modules.Gainzer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +22,7 @@ import java.util.stream.Collectors;
  */
 class ModuleManager {
 
+    private final HashMap<Class<?>, Object> modules = new HashMap<>();
     private final List<Initializer> initializers = new ArrayList<>();
     private final List<MessageListener> messageListeners = new ArrayList<>();
     private final HashMap<String, MessageListener> messageListenersByName = new HashMap<>();
@@ -32,6 +34,7 @@ class ModuleManager {
 
     ModuleManager(ContextImpl context) {
         this.context = context;
+        this.context.setModuleManager(this);
         logger.debug("Initialized.");
     }
 
@@ -61,6 +64,7 @@ class ModuleManager {
             throw new IllegalArgumentException("Invalid class supplied as a module.");
         }
 
+        modules.put(moduleClass, module);
         if(Initializer.class.isAssignableFrom(moduleClass)) {
             initializers.add((Initializer) module);
         }
@@ -117,6 +121,10 @@ class ModuleManager {
 
     List<ServerListener> getServerListeners() {
         return serverListeners;
+    }
+
+    <T> T getModule(Class<T> moduleClass) {
+        return (T) modules.get(moduleClass);
     }
 
     String generateCommandList() {

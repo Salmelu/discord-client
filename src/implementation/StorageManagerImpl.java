@@ -45,11 +45,10 @@ public class StorageManagerImpl {
     }
 
     private final HashMap<NamePair, StorageImpl> storageMap = new HashMap<>();
-    private static final String storagePath = "./storage";
+    private final String storagePath;
 
     private final Thread savingThread;
     private static final int SLEEP_TIME = 5 * 60 * 1000;
-    private static final String DIR_STORAGE = "storage/";
     private boolean savingRunning;
 
     private final Logger logger = LoggerFactory.getLogger(getClass().getSimpleName());
@@ -59,6 +58,7 @@ public class StorageManagerImpl {
         if(!storageDir.mkdirs() && !storageDir.exists()) {
             throw new Error("Couldn't create a directory for storages. Make sure you set up a correct path.");
         }
+        this.storagePath = storagePath;
         savingThread = new Thread(() -> {
             while(savingRunning) {
                 saveAll();
