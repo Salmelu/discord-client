@@ -432,8 +432,8 @@ public class ServerImpl implements Server {
             throw new PermissionDeniedException("This application cannot create channels on this server.");
         }
         final JSONObject object = new JSONObject();
-        object.put("name", Channel.ChannelType.SERVER_TEXT);
-        object.put("type", "text");
+        object.put("name", name);
+        object.put("type", Channel.ChannelType.SERVER_TEXT);
         return createChannelCommon(object, overwrites);
     }
 
@@ -453,18 +453,21 @@ public class ServerImpl implements Server {
 
     private Future<RequestResponse> createChannelCommon(JSONObject object, List<PermissionOverwrite> overwrites) {
         final JSONArray overwritesArray = new JSONArray();
-        overwrites.forEach(overwrite -> {
-            PermissionOverwriteObject poo = new PermissionOverwriteObject();
-            poo.setId(overwrite.getId());
-            poo.setType(overwrite.getType());
-            poo.setAllow(Permission.convertToValue(overwrite.getAllow()));
-            poo.setDeny(Permission.convertToValue(overwrite.getDeny()));
-            overwritesArray.put(poo);
-        });
+        if(overwrites != null) {
+            overwrites.forEach(overwrite -> {
+                PermissionOverwriteObject poo = new PermissionOverwriteObject();
+                poo.setId(overwrite.getId());
+                poo.setType(overwrite.getType());
+                poo.setAllow(Permission.convertToValue(overwrite.getAllow()));
+                poo.setDeny(Permission.convertToValue(overwrite.getDeny()));
+                overwritesArray.put(poo);
+            });
 
-        object.put("permission_overwrites", overwritesArray);
+            object.put("permission_overwrites", overwritesArray);
+        }
+
         return client.getRequester().postRequestAsync(
-                EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build());
+                EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build(), object);
     }
 
     @Override

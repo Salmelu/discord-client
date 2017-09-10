@@ -139,6 +139,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
             return;
         }
         state = DiscordWebSocketState.DISCONNECTING;
+        stopping = true;
         logger.info("Disconnecting from websocket.");
         if(heartbeatThread != null) {
             logger.info("Stopping heartbeat generator.");
@@ -152,7 +153,6 @@ public class DiscordWebSocket extends WebSocketAdapter {
             }
             heartbeatThread = null;
         }
-        stopping = true;
         if(session != null) {
             session.close(1000, "Gracefully ending.");
         }

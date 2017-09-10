@@ -185,7 +185,7 @@ public class DiscordRequester {
     private String postRequestImpl(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending POST request to " + endpoint.getAddress());
+        logger.debug("Sending POST request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.POST)
                 .setEndpoint(endpoint)
@@ -203,7 +203,7 @@ public class DiscordRequester {
     private Future<RequestResponse> postRequestImplAsync(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending asynchronous POST request to " + endpoint.getAddress());
+        logger.debug("Sending asynchronous POST request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.POST)
                 .setEndpoint(endpoint)
@@ -221,7 +221,7 @@ public class DiscordRequester {
     private String patchRequestImpl(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending PATCH request to " + endpoint.getAddress());
+        logger.debug("Sending PATCH request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.PATCH)
                 .setEndpoint(endpoint)
@@ -239,7 +239,7 @@ public class DiscordRequester {
     private Future<RequestResponse> patchRequestImplAsync(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending asynchronous PATCH request to " + endpoint.getAddress());
+        logger.debug("Sending asynchronous PATCH request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.PATCH)
                 .setEndpoint(endpoint)
@@ -257,7 +257,7 @@ public class DiscordRequester {
     private String putRequestImpl(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending PUT request to " + endpoint.getAddress());
+        logger.debug("Sending PUT request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.PUT)
                 .setEndpoint(endpoint)
@@ -275,7 +275,7 @@ public class DiscordRequester {
     private Future<RequestResponse> putRequestImplAsync(Endpoint endpoint, String s) {
         if(stopped) return null;
         waitForLimit(endpoint);
-        logger.debug("Sending asynchronous PUT request to " + endpoint.getAddress());
+        logger.debug("Sending asynchronous PUT request to " + endpoint.getAddress() + "; attachment: " + s);
 
         final RestRequest request = new RestRequest(HttpMethod.PUT)
                 .setEndpoint(endpoint)

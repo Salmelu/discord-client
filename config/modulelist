@@ -1,1 +1,5 @@
-cz.salmelu.discord.modules.CopyMessage
+cz.salmelu.discord.modules.ExampleReply
+cz.salmelu.discord.modules.ExampleStorage
+cz.salmelu.discord.modules.ExampleGuard
+cz.salmelu.discord.modules.ExampleNotification
+cz.salmelu.discord.modules.ExampleReaction
