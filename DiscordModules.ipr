@@ -98,7 +98,7 @@ under the License.
   <component name="ProjectModuleManager"> 
     <modules> 
       <!-- module filepath="$$PROJECT_DIR$$/${pom.artifactId}.iml"/ -->  
-      <module filepath="$PROJECT_DIR$/DiscordClient.iml"/>
+      <module filepath="$PROJECT_DIR$/DiscordModules.iml"/>
     </modules> 
   </component>  
   <UsedPathMacros> 

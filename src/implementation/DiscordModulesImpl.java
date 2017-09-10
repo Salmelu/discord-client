@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * Main class loading the properties and settings and initializing all the required objects.
  */
-public class DiscordClientImpl {
+public class DiscordModulesImpl {
 
     private ContextImpl context;
     private Dispatcher dispatcher;
@@ -33,11 +33,11 @@ public class DiscordClientImpl {
         }
     }
 
-    public DiscordClientImpl() {
+    public DiscordModulesImpl() {
 
         try {
             Properties properties = new Properties();
-            final InputStream is = DiscordClientImpl.class.getResourceAsStream("/discord.properties");
+            final InputStream is = cz.salmelu.discord.implementation.DiscordModulesImpl.class.getResourceAsStream("/discord.properties");
             if(is == null) {
                 throw new IOException("Couldn't find discord property file.");
             }

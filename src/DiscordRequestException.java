@@ -19,4 +19,12 @@ public class DiscordRequestException extends RuntimeException {
     public int getResponseCode() {
         return responseCode;
     }
+
+    /**
+     * Checks if the exception was thrown because of going over rate limit.
+     * @return true if the call failed due to rate limits
+     */
+     public boolean isRateLimit() {
+        return responseCode == 429;
+     }
 }

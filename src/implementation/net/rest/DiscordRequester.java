@@ -1,6 +1,5 @@
 package cz.salmelu.discord.implementation.net.rest;
 
-import cz.salmelu.discord.DiscordClient;
 import cz.salmelu.discord.DiscordRequestException;
 import cz.salmelu.discord.RequestResponse;
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
@@ -19,8 +18,8 @@ import java.util.concurrent.Future;
  */
 public class DiscordRequester {
 
-    private static final String LIB_URL = DiscordClient.LIB_URL;
-    private static final String LIB_VERSION = DiscordClient.LIB_VERSION;
+    private static final String LIB_URL = cz.salmelu.discord.DiscordModules.LIB_URL;
+    private static final String LIB_VERSION = cz.salmelu.discord.DiscordModules.LIB_VERSION;
     private final String token;
     private final Serializer serializer;
     private final RateLimiter limiter;

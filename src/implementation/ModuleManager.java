@@ -122,6 +122,7 @@ class ModuleManager {
         return serverListeners;
     }
 
+    @SuppressWarnings("unchecked")
     <T> T getModule(Class<T> moduleClass) {
         return (T) modules.get(moduleClass);
     }

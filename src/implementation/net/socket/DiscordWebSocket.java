@@ -1,6 +1,5 @@
 package cz.salmelu.discord.implementation.net.socket;
 
-import cz.salmelu.discord.DiscordClient;
 import cz.salmelu.discord.implementation.json.reflector.MappedObject;
 import cz.salmelu.discord.implementation.json.reflector.Serializer;
 import cz.salmelu.discord.implementation.json.resources.*;
@@ -35,9 +34,9 @@ import java.util.zip.InflaterInputStream;
 public class DiscordWebSocket extends WebSocketAdapter {
 
     /** Library name presented to the gateway */
-    private static final String LIB_NAME = DiscordClient.LIB_NAME;
+    private static final String LIB_NAME = cz.salmelu.discord.DiscordModules.LIB_NAME;
     /** Library version presented to the gateway */
-    private static final String LIB_VERSION = DiscordClient.LIB_VERSION;
+    private static final String LIB_VERSION = cz.salmelu.discord.DiscordModules.LIB_VERSION;
     /** The amount of milliseconds after which fail counter resets */
     private static final long FAIL_RESET_PERIOD = 5 * 60 * 1000;
     /** The amount of failed tries in a short period of time that cause the gateway to shutdown */
