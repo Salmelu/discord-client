@@ -14,6 +14,8 @@ import org.apache.http.impl.nio.client.HttpAsyncClientBuilder;
 import org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager;
 import org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor;
 import org.apache.http.nio.reactor.IOReactorException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.concurrent.ExecutionException;
@@ -30,6 +32,7 @@ class RestRequestSender {
     private final CloseableHttpAsyncClient asyncRestClient;
     private final Thread monitor;
     private final Thread asyncMonitor;
+    private final Logger logger = LoggerFactory.getLogger("RestRequestSender");
 
     RestRequestSender() {
         final RequestConfig config = RequestConfig.custom()
@@ -140,6 +143,8 @@ class RestRequestSender {
             @Override
             public void completed(HttpResponse httpResponse) {
                 final RestResponse restResponse = new RestResponse(httpResponse);
+                logger.debug("Received asynchronous response: " + restResponse.getStatusCode()
+                        + " (" + restResponse.getStatusText() + ")");
                 requester.updateLimit(endpoint, restResponse);
             }
 

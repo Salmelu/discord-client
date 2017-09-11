@@ -173,7 +173,9 @@ public class DiscordRequester {
         final RestRequest request = new RestRequest(HttpMethod.GET)
                 .setEndpoint(endpoint);
         fillHeaders(request);
-        return fireRequest(endpoint, request);
+        final String response = fireRequest(endpoint, request);
+        logger.debug("Received response: " + response);
+        return response;
     }
 
     /**

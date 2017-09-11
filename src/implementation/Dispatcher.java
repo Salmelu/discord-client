@@ -148,7 +148,8 @@ public class Dispatcher {
             logger.warn("Update for channel that is tracked as private, skipping.");
             return;
         }
-        ((ServerChannelImpl) channel).update(channelObject);
+        ((ServerImpl) channel.toServerChannel().getServer())
+                .updateChannelResponse((ServerChannelImpl) channel, channelObject);
         moduleManager.getServerListeners().forEach(
                 listener -> Wrapper.wrap(listener::onChannelUpdate, channel.toServerChannel()));
     }
@@ -284,7 +285,7 @@ public class Dispatcher {
             moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleUpdate, newRole));
         }
         else {
-            ((RoleImpl) role).update(roleObject.getRole());
+            server.updateRoleResponse((RoleImpl) role, roleObject.getRole());
             moduleManager.getServerListeners().forEach(listener -> Wrapper.wrap(listener::onRoleUpdate, role));
         }
     }

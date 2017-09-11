@@ -1,9 +1,7 @@
 package cz.salmelu.discord.implementation.resources;
 
 import cz.salmelu.discord.*;
-import cz.salmelu.discord.implementation.json.resources.MessageObject;
-import cz.salmelu.discord.implementation.json.resources.PrivateChannelObject;
-import cz.salmelu.discord.implementation.json.resources.UserObject;
+import cz.salmelu.discord.implementation.json.resources.*;
 import cz.salmelu.discord.implementation.json.response.ReactionUpdateResponse;
 import cz.salmelu.discord.implementation.net.rest.Endpoint;
 import cz.salmelu.discord.implementation.net.rest.EndpointBuilder;
@@ -61,6 +59,11 @@ public class MessageImpl implements Message {
             }
             else {
                 logger.error(marker, "Received message from not private channel, which is not stored.");
+            }
+        }
+        if(originalObject.getReactions() != null) {
+            for (ReactionObject reactionObject : originalObject.getReactions()) {
+                addReaction0(reactionObject);
             }
         }
     }
@@ -311,6 +314,13 @@ public class MessageImpl implements Message {
             current.increment(reactionResponse.getUserId().equals(client.getMyUser().getId()));
             return current;
         }
+    }
+
+    private void addReaction0(ReactionObject reactionObject) {
+        EmojiObject emojiObject = reactionObject.getEmoji();
+        ReactionImpl newReaction = new ReactionImpl(Emoji.getByUnicode(emojiObject.getName()),
+                reactionObject, this);
+        reactions.put(newReaction.getEmoji().getName(), newReaction);
     }
 
     public ReactionImpl removeReaction0(ReactionUpdateResponse reactionResponse, Emoji emoji) {

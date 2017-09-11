@@ -3,6 +3,7 @@ package cz.salmelu.discord.resources;
 import cz.salmelu.discord.PermissionDeniedException;
 import cz.salmelu.discord.RequestResponse;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.Future;
@@ -239,7 +240,7 @@ public interface Server {
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission
      */
-    Future<RequestResponse> createRole(String name, List<Permission> permissions, int color, boolean separate,
+    Future<RequestResponse> createRole(String name, Collection<Permission> permissions, int color, boolean separate,
                                        boolean mentionable);
 
     /**
@@ -254,7 +255,7 @@ public interface Server {
      * @return future for obtaining the response from Discord servers
      * @throws PermissionDeniedException if the application doesn't have manage roles permission
      */
-    Future<RequestResponse> updateRole(Role role, String name, List<Permission> permissions, int color, boolean separate,
+    Future<RequestResponse> updateRole(Role role, String name, Collection<Permission> permissions, int color, boolean separate,
                                        boolean mentionable);
 
     /**

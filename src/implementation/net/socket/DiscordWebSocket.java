@@ -519,7 +519,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
                 case "GUILD_MEMBER_UPDATE":
                     dispatcher.onServerMemberUpdate(serializer.deserialize(data, ServerMemberUpdateResponse.class));
                     break;
-                case "GUILD_MEMBER_CHUNK":
+                case "GUILD_MEMBERS_CHUNK":
                     dispatcher.onServerMemberChunk(serializer.deserialize(data, ServerMemberChunkResponse.class));
                     break;
                 case "GUILD_ROLE_CREATE":

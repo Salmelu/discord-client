@@ -470,6 +470,12 @@ public class ServerImpl implements Server {
                 EndpointBuilder.create(Endpoint.SERVER).addElement(getId()).addElement("channels").build(), object);
     }
 
+    public void updateChannelResponse(ServerChannelImpl channel, ChannelObject channelObject) {
+        channelsByName.remove(channel.getName());
+        channel.update(channelObject);
+        channelsByName.put(channel.getName(), channel);
+    }
+
     @Override
     public Future<RequestResponse> deleteChannel(ServerChannel channel) {
         if(!channelList.contains(channel)) {
@@ -479,7 +485,7 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public Future<RequestResponse> createRole(String name, List<Permission> permissions, int color,
+    public Future<RequestResponse> createRole(String name, Collection<Permission> permissions, int color,
                                               boolean separate, boolean mentionable) {
         if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot create roles on this server.");
@@ -508,7 +514,7 @@ public class ServerImpl implements Server {
     }
 
     @Override
-    public Future<RequestResponse> updateRole(Role role, String name, List<Permission> permissions, int color,
+    public Future<RequestResponse> updateRole(Role role, String name, Collection<Permission> permissions, int color,
                                               boolean separate, boolean mentionable) {
         if(!getPermissions().contains(Permission.MANAGE_ROLES)) {
             throw new PermissionDeniedException("This application cannot manage roles on this server.");
@@ -535,8 +541,19 @@ public class ServerImpl implements Server {
         jsonObject.put("mentionable", mentionable);
 
         final Endpoint endpoint = EndpointBuilder.create(Endpoint.SERVER)
-                .addElement(getId()).addElement("roles").build();
+                .addElement(getId()).addElement("roles").addElement(role.getId()).build();
         return client.getRequester().patchRequestAsync(endpoint, jsonObject);
+    }
+
+    public void updateRoleResponse(RoleImpl role, RoleObject updatedRole) {
+        // We may need to reset the permissions
+        rolesByName.remove(role.getName());
+        role.update(updatedRole);
+        rolesByName.put(role.getName(), role);
+        if(getMe().getRoles().contains(role)) {
+            permissions = null; // Resets the permissions cause something may have changed
+            channelList.forEach(channel -> ((ServerChannelImpl) channel).calculatePermissions());
+        }
     }
 
     @Override

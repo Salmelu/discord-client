@@ -37,6 +37,16 @@ public class ReactionImpl implements Reaction {
         originalObject.setEmoji(reactionObject.getEmoji());
     }
 
+    public ReactionImpl(Emoji emoji, ReactionObject reactionObject, MessageImpl message) {
+        this.originalObject = new ReactionObject();
+        this.message = message;
+        this.emoji = emoji;
+
+        originalObject.setCount(1);
+        originalObject.setMe(reactionObject.isMe());
+        originalObject.setEmoji(reactionObject.getEmoji());
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == null) return false;
