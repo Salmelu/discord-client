@@ -4,7 +4,7 @@ import cz.salmelu.discord.resources.Client;
 import cz.salmelu.discord.resources.Server;
 
 /**
- * <p>An interface with server callbacks for modules.</p>
+ * <p>An interface with server initialization callbacks for modules.</p>
  *
  * <p>A module shall implement this interface when it needs to be notified about server connections.</p>
  */

@@ -8,7 +8,7 @@ import java.util.Set;
 import java.util.concurrent.Future;
 
 /**
- * A Discord server. Officially called a <i>Guild</i> in Discord documentation,
+ * A Discord community server. Officially called a <i>Guild</i> in Discord documentation,
  * however, this library uses the name with which most Discord users are more familiar with.
  */
 public interface Server {

@@ -10,6 +10,12 @@ The library's core term is a **module**. A module is a single isolated unit (usu
 
 The default compilation is simple. All you need to do is executing `mvn package`. This compiles all the sources, packages the library *.jar*, gets all the dependencies and configuration files and puts everything in `dist/` directory.
 
+### Generate Javadoc
+
+Run `mvn javadoc:javadoc`. You can find the generated documentation in `docs/` folder.
+Note that the generation may produce warnings, these are caused by excluding implementation
+classes, which are not accessible to your code and make the documentation look unnecessarily chaotic.
+
 ### How to make a simple module
 
 ```Java

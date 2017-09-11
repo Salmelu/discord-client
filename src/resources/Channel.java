@@ -175,11 +175,29 @@ public interface Channel {
      */
     Future<RequestResponse> deleteChannel() throws PermissionDeniedException;
 
+    /**
+     * <p>Various channel types available at discord.</p>
+     */
     class ChannelType {
+        /**
+         * A server channel used by community server members.
+         */
         public static final int SERVER_TEXT = 0;
+        /**
+         * A private channel, also called a direct message channel.
+         */
         public static final int PRIVATE = 1;
+        /**
+         * A server voice channel.
+         */
         public static final int SERVER_VOICE = 2;
+        /**
+         * A private group channel, a private channel between a multiple users
+         */
         public static final int PRIVATE_GROUP = 3;
+        /**
+         * Reserved for future use by Discord
+         */
         public static final int SERVER_CATEGORY = 4;
     }
 }

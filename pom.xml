@@ -142,12 +142,28 @@
                 </executions>
             </plugin>
             <plugin>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>3.0.0-M1</version>
+                <configuration>
+                    <windowTitle>HELLO!</windowTitle>
+                    <reportOutputDirectory>${project.basedir}</reportOutputDirectory>
+                    <destDir>docs</destDir>
+                    <sourcepath>${project.build.sourceDirectory}</sourcepath>
+                    <excludePackageNames>*.implementation</excludePackageNames>
+                    <quiet>true</quiet>
+                </configuration>
+            </plugin>
+            <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>2.5</version>
                 <configuration>
                     <filesets>
                         <fileset>
-                            <directory>dist/</directory>
+                            <directory>${project.basedir}/dist</directory>
+                            <followSymlinks>false</followSymlinks>
+                        </fileset>
+                        <fileset>
+                            <directory>${project.basedir}/docs</directory>
                             <followSymlinks>false</followSymlinks>
                         </fileset>
                     </filesets>

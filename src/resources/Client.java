@@ -2,6 +2,11 @@ package cz.salmelu.discord.resources;
 
 import java.util.List;
 
+/**
+ * <p>A client connected to Discord.</p>
+ * <p>Manages establishing connections, sending requests, dispatching responses and managing global resources,
+ * such as users and servers.</p>
+ */
 public interface Client {
     /**
      * Returns a {@link User} object representing application's user
