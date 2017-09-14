@@ -10,10 +10,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -63,22 +60,24 @@ class ModuleManager {
             throw new IllegalArgumentException("Invalid class supplied as a module.");
         }
 
-        modules.put(moduleClass, module);
-        if(Initializer.class.isAssignableFrom(moduleClass)) {
+        final List<Class<?>> interfaces = Arrays.asList(moduleClass.getInterfaces());
+
+        if(interfaces.contains(Initializer.class)) {
             initializers.add((Initializer) module);
         }
-        if(MessageListener.class.isAssignableFrom(moduleClass)) {
+        if(interfaces.contains(MessageListener.class)) {
             final MessageListener ml = (MessageListener) module;
             messageListeners.add(ml);
             if(ml.getName() != null) messageListenersByName.put(ml.getName(), ml);
         }
-        if (UserActionListener.class.isAssignableFrom(moduleClass)) {
+        if (interfaces.contains(UserActionListener.class)) {
             actionListeners.add((UserActionListener) module);
         }
-        if (ServerListener.class.isAssignableFrom(moduleClass)) {
+        if (interfaces.contains(ServerListener.class)) {
             serverListeners.add((ServerListener) module);
         }
 
+        modules.put(moduleClass, module);
         logger.info("Module " + moduleClass.getCanonicalName() + " loaded.");
         messageListeners.sort(Comparator.comparingInt(MessageListener::getPriority));
     }

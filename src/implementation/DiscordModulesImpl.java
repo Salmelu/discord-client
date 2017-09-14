@@ -51,7 +51,7 @@ public class DiscordModulesImpl {
             final boolean ignoreBot = Boolean.parseBoolean(properties.getProperty("ignoreBot", "true"));
             final boolean ignoreSelf = Boolean.parseBoolean(properties.getProperty("ignoreSelf", "true"));
             final String helpCommand = properties.getProperty("helpCommand", "");
-            final String storagePath = properties.getProperty("storagePath", "./storage");
+            final String storagePath = properties.getProperty("storageDirectory", "./storage/");
 
             context = new ContextImpl(storagePath);
             client = new ClientImpl(token);

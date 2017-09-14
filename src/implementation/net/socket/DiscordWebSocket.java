@@ -352,6 +352,7 @@ public class DiscordWebSocket extends WebSocketAdapter {
                     else {
                         discord.purgeData();
                         logger.debug("Sending identify request.");
+                        state = DiscordWebSocketState.CONNECTING;
                         identify();
                     }
                     break;
