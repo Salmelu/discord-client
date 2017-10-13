@@ -14,6 +14,7 @@ public class ChannelObject implements MappedObject {
     private String lastMessageId;
     private Integer bitrate;
     private Integer userLimit;
+    private String parentId;
 
     public String getId() {
         return id;
@@ -93,6 +94,14 @@ public class ChannelObject implements MappedObject {
 
     public void setUserLimit(Integer userLimit) {
         this.userLimit = userLimit;
+    }
+
+    public String getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(String parentId) {
+        this.parentId = parentId;
     }
 
     public JSONObject getModifyObject() {

@@ -21,6 +21,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     private final ChannelObject originalObject;
 
     private final ServerImpl server;
+    private ServerChannelImpl parent = null;
 
     private Set<Permission> currentPermissions;
 
@@ -30,6 +31,10 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
         this.client = client;
         this.server = server;
+
+        if(originalObject.getParentId() != null) {
+            parent = (ServerChannelImpl) server.getChannelById(originalObject.getParentId());
+        }
 
         calculatePermissions();
     }
@@ -71,13 +76,26 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         if(channelObject.getLastMessageId() != null) originalObject.setLastMessageId(channelObject.getLastMessageId());
         if(channelObject.getBitrate() != null) originalObject.setBitrate(channelObject.getBitrate());
         if(channelObject.getUserLimit() != null) originalObject.setUserLimit(channelObject.getUserLimit());
+        if(channelObject.getParentId() != null) {
+            if(!channelObject.getParentId().equals(originalObject.getParentId())) {
+                originalObject.setParentId(channelObject.getParentId());
+                parent = (ServerChannelImpl) server.getChannelById(originalObject.getParentId());
+            }
+        }
 
+        if(channelObject.getType() == ChannelType.SERVER_CATEGORY) {
+            server.clearAllPermissions();
+        }
         calculatePermissions();
     }
 
     @Override
     public void messageArrived(Message message) {
         originalObject.setLastMessageId(message.getId());
+    }
+
+    public void clearPermissions() {
+        currentPermissions = null;
     }
 
     /**
@@ -90,7 +108,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     public void calculatePermissions() {
         if(originalObject.getPermissionOverwrites() == null
                 || originalObject.getPermissionOverwrites().length == 0) {
-            currentPermissions = EnumSet.copyOf(server.getPermissions());
+            currentPermissions = getParentPermissions();
             return;
         }
 
@@ -117,7 +135,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
             }
         });
 
-        EnumSet<Permission> permissions = EnumSet.copyOf(server.getPermissions());
+        EnumSet<Permission> permissions = EnumSet.copyOf(getParentPermissions());
         permissions.removeAll(Permission.getPermissions(permissionValues[0]));
         permissions.addAll(Permission.getPermissions(permissionValues[1]));
         permissions.removeAll(Permission.getPermissions(permissionValues[2]));
@@ -126,6 +144,13 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
         permissions.addAll(Permission.getPermissions(permissionValues[5]));
 
         currentPermissions = Collections.unmodifiableSet(permissions);
+    }
+
+    private Set<Permission> getParentPermissions() {
+        if(parent == null) {
+            return EnumSet.copyOf(server.getPermissions());
+        }
+        return parent.getPermissions();
     }
 
     public boolean checkPermission(Permission permission) {
@@ -153,6 +178,11 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
     }
 
     @Override
+    public boolean isCategory() {
+        return originalObject.getType() == ChannelType.SERVER_CATEGORY;
+    }
+
+    @Override
     public int getPosition() {
         return originalObject.getPosition();
     }
@@ -174,6 +204,7 @@ public class ServerChannelImpl extends ChannelBase implements ServerChannel {
 
     @Override
     public Set<Permission> getPermissions() {
+        if(currentPermissions == null) calculatePermissions();
         return Collections.unmodifiableSet(currentPermissions);
     }
 

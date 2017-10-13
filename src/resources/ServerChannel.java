@@ -30,6 +30,12 @@ public interface ServerChannel extends Channel {
     boolean isVoice();
 
     /**
+     * Checks if the channel is actually a channel category
+     * @return true if this channel is a channel category
+     */
+    boolean isCategory();
+
+    /**
      * Gets channel's position in channel list.
      * @return channel's position
      */

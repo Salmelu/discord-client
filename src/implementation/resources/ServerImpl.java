@@ -104,6 +104,10 @@ public class ServerImpl implements Server {
         return permissions;
     }
 
+    public void clearAllPermissions() {
+        channelList.forEach(channel -> ((ServerChannelImpl) channel).clearPermissions());
+    }
+
     public boolean checkPermission(Permission permission) {
         return permissions.contains(permission);
     }
