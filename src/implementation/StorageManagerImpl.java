@@ -94,14 +94,24 @@ public class StorageManagerImpl {
         if(storage == null) return;
 
         final String filename = storagePath + pair.getInnerClass().getName() + "::" + pair.getInnerName();
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(new File(filename)))) {
+        ObjectOutputStream oos = null;
+        try {
             storage.lock();
+            oos = new ObjectOutputStream(new FileOutputStream(new File(filename)));
             oos.writeObject(storage.storedObjects);
         }
         catch(IOException e) {
             logger.warn("Failed saving storage of class " + pair.getInnerClass().getName(), e);
         }
         finally {
+            if(oos != null) {
+                try {
+                    oos.close();
+                }
+                catch (IOException ignored) {
+
+                }
+            }
             storage.unlock();
         }
     }

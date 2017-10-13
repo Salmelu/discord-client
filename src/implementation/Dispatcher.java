@@ -341,7 +341,7 @@ public class Dispatcher {
         else {
             message = (MessageImpl) channel.getMessage(id);
         }
-        if(message.getAuthor() != null) {
+        if(messageObject.getAuthor() != null) {
             if (ignoreBotMessages && messageObject.getAuthor().isBot()) {
                 logger.debug("Skipping a bot message.");
                 return;
